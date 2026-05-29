@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Header() {
-  const pathname = usePathname();
-  // Homepage uses the studio-style nav inline within the hero; suppress
-  // the global header there so we don't double-stack.
-  if (pathname === "/") return null;
+  // The studio-style inline nav has been replaced by the cinematic DNA hero,
+  // which leaves the global header on. We keep `usePathname` available in
+  // case the homepage wants a transparent variant in a later iteration.
+  void usePathname();
 
   return (
     <header className="sticky top-0 z-40 w-full bg-background/85 backdrop-blur-md">
