@@ -1,0 +1,432 @@
+import type { Simulation, SimulationAuthor } from "@/types";
+
+const thumb = (pdb: string) =>
+  `https://placehold.co/800x450/0e0e0e/5DCAA5?text=${pdb}&font=roboto`;
+
+const avatar = (seed: string) =>
+  `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=0F6E56`;
+
+const pdbUrl = (id: string) => `https://files.rcsb.org/download/${id}.pdb`;
+
+const AUTHORS: Record<string, SimulationAuthor> = {
+  mira: { name: "Mira Okafor", username: "miraokafor", avatarUrl: avatar("Mira Okafor") },
+  jin: { name: "Jin Tanaka", username: "jtanaka", avatarUrl: avatar("Jin Tanaka") },
+  sofia: { name: "Sofia Vargas", username: "svargas", avatarUrl: avatar("Sofia Vargas") },
+  henrik: { name: "Henrik Nilsson", username: "hnilsson", avatarUrl: avatar("Henrik Nilsson") },
+  priya: { name: "Priya Iyer", username: "piyer", avatarUrl: avatar("Priya Iyer") },
+  daniel: { name: "Daniel Cohen", username: "dcohen", avatarUrl: avatar("Daniel Cohen") },
+  aisha: { name: "Aisha Mwangi", username: "amwangi", avatarUrl: avatar("Aisha Mwangi") },
+  lukas: { name: "Lukas Becker", username: "lbecker", avatarUrl: avatar("Lukas Becker") },
+  anya: { name: "Anya Petrova", username: "apetrova", avatarUrl: avatar("Anya Petrova") },
+  marcus: { name: "Marcus Adebayo", username: "madebayo", avatarUrl: avatar("Marcus Adebayo") },
+  yuki: { name: "Yuki Sato", username: "ysato", avatarUrl: avatar("Yuki Sato") },
+  elena: { name: "Elena Rossi", username: "erossi", avatarUrl: avatar("Elena Rossi") },
+};
+
+export const mockSimulations: Simulation[] = [
+  // Globins
+  {
+    id: "oxy-hemoglobin-1hho",
+    pdbCode: "1HHO",
+    title: "Oxyhemoglobin, R state",
+    description:
+      "Human hemoglobin in the oxygen-bound R state. The classic structure that captures cooperative binding mid-cycle.",
+    pdbUrl: pdbUrl("1HHO"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1HHO"),
+    author: AUTHORS.jin,
+    createdAt: "2026-05-18T09:12:00Z",
+    viewCount: 8200,
+    likeCount: 612,
+    commentCount: 23,
+    tags: ["oxygen-transport", "allosteric", "tetramer"],
+    category: "protein",
+    proteinFamily: "Globins",
+    organism: "Homo sapiens",
+    experimentType: "equilibrium MD",
+    resolution: 2.1,
+  },
+  {
+    id: "deoxy-hemoglobin-4hhb",
+    pdbCode: "4HHB",
+    title: "Deoxyhemoglobin, T state",
+    description:
+      "Human deoxyhemoglobin in the tense T state. Pairs naturally with 1HHO to study the allosteric switch behind cooperative oxygen binding.",
+    pdbUrl: pdbUrl("4HHB"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("4HHB"),
+    author: AUTHORS.priya,
+    createdAt: "2026-04-28T18:55:00Z",
+    viewCount: 5400,
+    likeCount: 388,
+    commentCount: 19,
+    tags: ["allosteric", "oxygen-transport", "tetramer"],
+    category: "protein",
+    proteinFamily: "Globins",
+    organism: "Homo sapiens",
+    experimentType: "equilibrium MD",
+    resolution: 1.74,
+  },
+  {
+    id: "myoglobin-1mbn",
+    pdbCode: "1MBN",
+    title: "Sperm whale myoglobin",
+    description:
+      "The first protein structure ever solved by X-ray crystallography (Kendrew, 1958). Still a benchmark for oxygen-storage dynamics.",
+    pdbUrl: pdbUrl("1MBN"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1MBN"),
+    author: AUTHORS.henrik,
+    createdAt: "2026-05-02T11:20:00Z",
+    viewCount: 4100,
+    likeCount: 297,
+    commentCount: 14,
+    tags: ["oxygen-storage", "classic", "monomer"],
+    category: "protein",
+    proteinFamily: "Globins",
+    organism: "Physeter macrocephalus",
+    experimentType: "equilibrium MD",
+    resolution: 2.0,
+  },
+
+  // GPCRs
+  {
+    id: "beta2-adrenergic-3sn6",
+    pdbCode: "3SN6",
+    title: "β2 adrenergic receptor–Gs complex",
+    description:
+      "β2 adrenergic receptor captured coupled to its heterotrimeric Gs partner. A landmark GPCR signaling complex.",
+    pdbUrl: pdbUrl("3SN6"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("3SN6"),
+    author: AUTHORS.sofia,
+    createdAt: "2026-05-12T15:40:00Z",
+    viewCount: 14200,
+    likeCount: 1083,
+    commentCount: 96,
+    tags: ["signaling", "g-protein", "membrane"],
+    category: "receptor",
+    proteinFamily: "GPCRs",
+    organism: "Homo sapiens",
+    experimentType: "binding",
+    resolution: 3.2,
+  },
+  {
+    id: "rhodopsin-6cmo",
+    pdbCode: "6CMO",
+    title: "Bovine rhodopsin, dark state",
+    description:
+      "Bovine rhodopsin in its dark resting state. A cornerstone for visual-pigment activation dynamics.",
+    pdbUrl: pdbUrl("6CMO"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("6CMO"),
+    author: AUTHORS.yuki,
+    createdAt: "2026-04-22T19:10:00Z",
+    viewCount: 6800,
+    likeCount: 491,
+    commentCount: 32,
+    tags: ["vision", "photoreceptor", "membrane"],
+    category: "receptor",
+    proteinFamily: "GPCRs",
+    organism: "Bos taurus",
+    experimentType: "equilibrium MD",
+    resolution: 3.0,
+  },
+
+  // CRISPR-Cas9
+  {
+    id: "cas9-4oo8",
+    pdbCode: "4OO8",
+    title: "CRISPR-Cas9 with sgRNA and DNA",
+    description:
+      "Cas9 bound to a single-guide RNA and target DNA. The complete editing complex in a cleavage-ready geometry.",
+    pdbUrl: pdbUrl("4OO8"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("4OO8"),
+    author: AUTHORS.marcus,
+    createdAt: "2026-05-15T08:30:00Z",
+    viewCount: 19400,
+    likeCount: 1620,
+    commentCount: 211,
+    tags: ["genome-editing", "rna", "dna-cleavage"],
+    category: "enzyme",
+    proteinFamily: "CRISPR-Cas9",
+    organism: "Streptococcus pyogenes",
+    experimentType: "equilibrium MD",
+    resolution: 2.5,
+  },
+
+  // Immunoglobulins
+  {
+    id: "igg-1igt",
+    pdbCode: "1IGT",
+    title: "Intact mouse IgG2a antibody",
+    description:
+      "One of the few full-length immunoglobulin structures available — hinges, Fab arms, and Fc all resolved.",
+    pdbUrl: pdbUrl("1IGT"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1IGT"),
+    author: AUTHORS.elena,
+    createdAt: "2026-04-09T13:45:00Z",
+    viewCount: 3200,
+    likeCount: 248,
+    commentCount: 11,
+    tags: ["immunology", "y-shape", "hinge"],
+    category: "antibody",
+    proteinFamily: "Immunoglobulins",
+    organism: "Mus musculus",
+    experimentType: "equilibrium MD",
+    resolution: 2.8,
+  },
+
+  // Kinases
+  {
+    id: "pka-1atp",
+    pdbCode: "1ATP",
+    title: "Protein kinase A, catalytic subunit",
+    description:
+      "PKA catalytic subunit bound to ATP and substrate peptide — the textbook reference structure for protein kinases.",
+    pdbUrl: pdbUrl("1ATP"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1ATP"),
+    author: AUTHORS.daniel,
+    createdAt: "2026-03-30T10:15:00Z",
+    viewCount: 5100,
+    likeCount: 372,
+    commentCount: 18,
+    tags: ["phosphorylation", "signaling", "atp-binding"],
+    category: "enzyme",
+    proteinFamily: "Kinases",
+    organism: "Mus musculus",
+    experimentType: "equilibrium MD",
+    resolution: 2.2,
+  },
+  {
+    id: "src-kinase-2src",
+    pdbCode: "2SRC",
+    title: "Src tyrosine kinase, autoinhibited",
+    description:
+      "Src tyrosine kinase in its closed, autoinhibited conformation — the regulatory baseline that activation has to overcome.",
+    pdbUrl: pdbUrl("2SRC"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("2SRC"),
+    author: AUTHORS.anya,
+    createdAt: "2026-04-04T17:25:00Z",
+    viewCount: 4400,
+    likeCount: 318,
+    commentCount: 9,
+    tags: ["autoinhibition", "tyrosine-kinase", "regulation"],
+    category: "enzyme",
+    proteinFamily: "Kinases",
+    organism: "Homo sapiens",
+    experimentType: "equilibrium MD",
+    resolution: 1.5,
+  },
+
+  // Lysozymes
+  {
+    id: "lysozyme-1aki",
+    pdbCode: "1AKI",
+    title: "Hen egg-white lysozyme",
+    description:
+      "Classic 129-residue enzyme that cleaves bacterial cell walls. A long-standing benchmark for force-field validation and protein dynamics.",
+    pdbUrl: pdbUrl("1AKI"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1AKI"),
+    author: AUTHORS.mira,
+    createdAt: "2026-05-20T14:30:00Z",
+    viewCount: 12400,
+    likeCount: 980,
+    commentCount: 47,
+    tags: ["enzyme", "benchmark", "protein"],
+    category: "enzyme",
+    proteinFamily: "Lysozymes",
+    organism: "Gallus gallus",
+    experimentType: "equilibrium MD",
+    resolution: 1.5,
+  },
+
+  // Kunitz inhibitors
+  {
+    id: "bpti-4pti",
+    pdbCode: "4PTI",
+    title: "Bovine pancreatic trypsin inhibitor (BPTI)",
+    description:
+      "Small, exceptionally stable Kunitz-domain inhibitor of serine proteases — one of the most thoroughly studied proteins in biophysics.",
+    pdbUrl: pdbUrl("4PTI"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("4PTI"),
+    author: AUTHORS.lukas,
+    createdAt: "2026-02-26T09:00:00Z",
+    viewCount: 2100,
+    likeCount: 165,
+    commentCount: 6,
+    tags: ["folding-benchmark", "inhibitor", "small"],
+    category: "protein",
+    proteinFamily: "Kunitz inhibitors",
+    organism: "Bos taurus",
+    experimentType: "folding",
+    resolution: 1.0,
+  },
+
+  // DNA
+  {
+    id: "b-dna-1bna",
+    pdbCode: "1BNA",
+    title: "Drew–Dickerson B-DNA dodecamer",
+    description:
+      "Twelve base pairs of canonical B-form DNA — the dodecamer that defined our picture of double-helix geometry.",
+    pdbUrl: pdbUrl("1BNA"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1BNA"),
+    author: AUTHORS.henrik,
+    createdAt: "2026-05-10T11:05:00Z",
+    viewCount: 3100,
+    likeCount: 240,
+    commentCount: 8,
+    tags: ["DNA", "nucleic-acid", "helix"],
+    category: "dna",
+    organism: "synthetic",
+    experimentType: "equilibrium MD",
+    resolution: 1.9,
+  },
+
+  // Aquaporins / membranes
+  {
+    id: "aquaporin-2nwl",
+    pdbCode: "2NWL",
+    title: "Spinach aquaporin SoPIP2;1",
+    description:
+      "A tetrameric water channel embedded in a plant plasma membrane. Each monomer gates water flow through a narrow selectivity filter.",
+    pdbUrl: pdbUrl("2NWL"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("2NWL"),
+    author: AUTHORS.aisha,
+    createdAt: "2026-03-12T16:00:00Z",
+    viewCount: 2800,
+    likeCount: 214,
+    commentCount: 7,
+    tags: ["water-channel", "tetramer", "membrane-protein"],
+    category: "membrane",
+    proteinFamily: "Aquaporins",
+    organism: "Spinacia oleracea",
+    experimentType: "equilibrium MD",
+    resolution: 1.9,
+  },
+
+  // Coronavirus spike
+  {
+    id: "spike-6vxx",
+    pdbCode: "6VXX",
+    title: "SARS-CoV-2 spike, closed prefusion",
+    description:
+      "Closed-trimer prefusion conformation of the spike glycoprotein. The starting state for receptor-binding-domain opening dynamics.",
+    pdbUrl: pdbUrl("6VXX"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("6VXX"),
+    author: AUTHORS.sofia,
+    createdAt: "2026-05-15T22:40:00Z",
+    viewCount: 24800,
+    likeCount: 2104,
+    commentCount: 312,
+    tags: ["virus", "spike", "drug-target"],
+    category: "protein",
+    proteinFamily: "Coronavirus spike",
+    organism: "SARS-CoV-2",
+    experimentType: "equilibrium MD",
+    resolution: 2.8,
+  },
+
+  // Ubiquitin
+  {
+    id: "ubiquitin-1ubq",
+    pdbCode: "1UBQ",
+    title: "Ubiquitin",
+    description:
+      "Seventy-six residues of fold-and-signaling perfection. The reference β-grasp fold and a staple of folding studies.",
+    pdbUrl: pdbUrl("1UBQ"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1UBQ"),
+    author: AUTHORS.lukas,
+    createdAt: "2026-02-08T16:45:00Z",
+    viewCount: 2700,
+    likeCount: 198,
+    commentCount: 11,
+    tags: ["signaling", "small-protein", "fold"],
+    category: "protein",
+    proteinFamily: "Ubiquitin",
+    organism: "Homo sapiens",
+    experimentType: "folding",
+    resolution: 1.8,
+  },
+
+  // Crambin
+  {
+    id: "crambin-1crn",
+    pdbCode: "1CRN",
+    title: "Crambin",
+    description:
+      "A 46-residue plant protein resolved at sub-ångström resolution. A tiny but exceptionally well-resolved benchmark for force fields.",
+    pdbUrl: pdbUrl("1CRN"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1CRN"),
+    author: AUTHORS.daniel,
+    createdAt: "2026-04-15T13:20:00Z",
+    viewCount: 1800,
+    likeCount: 142,
+    commentCount: 4,
+    tags: ["plant-protein", "benchmark", "small"],
+    category: "protein",
+    organism: "Crambe abyssinica",
+    experimentType: "folding",
+    resolution: 0.54,
+  },
+
+  // Histones
+  {
+    id: "nucleosome-1kx5",
+    pdbCode: "1KX5",
+    title: "Nucleosome core particle",
+    description:
+      "147 base pairs of DNA wrapped around a histone octamer (two copies of H2A, H2B, H3, H4). The fundamental unit of chromatin.",
+    pdbUrl: pdbUrl("1KX5"),
+    trajectoryUrl: null,
+    thumbnailUrl: thumb("1KX5"),
+    author: AUTHORS.elena,
+    createdAt: "2026-03-05T10:50:00Z",
+    viewCount: 7200,
+    likeCount: 538,
+    commentCount: 41,
+    tags: ["chromatin", "dna-binding", "octamer"],
+    category: "protein",
+    proteinFamily: "Histones",
+    organism: "Xenopus laevis",
+    experimentType: "equilibrium MD",
+    resolution: 1.9,
+  },
+];
+
+export function getSimulation(id: string): Simulation | undefined {
+  return mockSimulations.find((s) => s.id === id);
+}
+
+export function getSimulationsByFamily(family: string): Simulation[] {
+  return mockSimulations.filter((s) => s.proteinFamily === family);
+}
+
+export function getRelatedSimulations(
+  sim: Simulation,
+  count = 3,
+): Simulation[] {
+  const all = mockSimulations.filter((s) => s.id !== sim.id);
+  if (sim.proteinFamily) {
+    const sameFamily = all.filter((s) => s.proteinFamily === sim.proteinFamily);
+    if (sameFamily.length >= count) return sameFamily.slice(0, count);
+    // Top up with same-category sims if family doesn't have enough.
+    const sameCategory = all.filter(
+      (s) => s.category === sim.category && s.proteinFamily !== sim.proteinFamily,
+    );
+    return [...sameFamily, ...sameCategory].slice(0, count);
+  }
+  return all.filter((s) => s.category === sim.category).slice(0, count);
+}
