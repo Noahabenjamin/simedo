@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, X } from "lucide-react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
-import { BlueDnaShell } from "./blue-dna-shell";
+
+// Studio hero overlay — the existing studio layout, lifted into a layer
+// component so its opacity can be driven by scroll progress.
+//
+// Visual identical to the original hero.tsx. Only difference: a static
+// `style={{ opacity }}` and a `pointer-events: none` switch at low opacity.
 
 const ACCENT = "#5E0ED7";
 
@@ -22,7 +27,6 @@ const STATS = [
 ] as const;
 
 const HEADLINE_WORDS = ["MOLECULES", "IN", "MOTION"] as const;
-
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const fadeDown: Variants = {
@@ -51,21 +55,23 @@ const headingSlide: Variants = {
   }),
 };
 
-export function Hero() {
+type Props = { opacity: number };
+
+export function StudioHeroLayer({ opacity }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const visible = opacity > 0.05;
 
   return (
-    <section
-      style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}
-      className="relative isolate flex min-h-screen w-full flex-col overflow-hidden bg-white text-black"
+    <div
+      className="absolute inset-0 z-20 flex min-h-full flex-col text-black"
+      style={{
+        fontFamily: "var(--font-inter), Inter, sans-serif",
+        opacity,
+        pointerEvents: visible ? "auto" : "none",
+        transition: "opacity 50ms linear",
+      }}
+      aria-hidden={!visible}
     >
-      <BlueDnaShell />
-
-      {/*
-        Nav contents are pushed right with viewport-relative left padding so
-        they sit clear of the DNA on the left side. Right padding stays at
-        the usual margin so the hamburger stays anchored to the edge.
-      */}
       <nav className="relative z-10 flex items-center justify-between gap-4 pl-[48vw] pr-5 pt-5 sm:pl-[44vw] sm:pr-8 md:pl-[40vw] md:pr-12 md:pt-6 lg:pl-[32vw]">
         <motion.div
           variants={fadeDown}
@@ -215,7 +221,7 @@ export function Hero() {
       <AnimatePresence>
         {menuOpen && <MobileMenu onClose={() => setMenuOpen(false)} />}
       </AnimatePresence>
-    </section>
+    </div>
   );
 }
 

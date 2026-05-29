@@ -5,7 +5,9 @@ import { MobileFilterTrigger } from "@/components/browse/mobile-filter-trigger";
 import { SortBar } from "@/components/browse/sort-bar";
 import { SimulationCard } from "@/components/simulation-card";
 import { CardGridSkeleton } from "@/components/skeletons";
-import { parseFilters } from "@/lib/browse-filters";
+import { TrendingRow } from "@/components/trending-row";
+import { CategoryGrid } from "@/components/category-grid";
+import { parseFilters, hasActiveFilters } from "@/lib/browse-filters";
 import { listSimulations } from "@/lib/data/simulations";
 import { mockSimulations } from "@/lib/mock-data";
 import { isDbAvailable } from "@/lib/data/db-available";
@@ -29,6 +31,12 @@ export default async function BrowsePage({ searchParams }: Props) {
     totalPromise,
   ]);
 
+  // Only show the curated discovery rows when the user hasn't already
+  // applied filters — otherwise they'd push the actual filtered results
+  // way down the page.
+  const showDiscovery = !hasActiveFilters(filters);
+  const trending = mockSimulations.slice(0, 6);
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
       <header className="mb-8 flex flex-col gap-2 lg:mb-12">
@@ -39,6 +47,13 @@ export default async function BrowsePage({ searchParams }: Props) {
           Filter by category, family, organism, and more.
         </p>
       </header>
+
+      {showDiscovery && (
+        <div className="mb-16 flex flex-col gap-16 lg:mb-24 lg:gap-24">
+          <TrendingRow simulations={trending} />
+          <CategoryGrid />
+        </div>
+      )}
 
       <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
         <aside className="hidden shrink-0 lg:block lg:w-[260px]">
