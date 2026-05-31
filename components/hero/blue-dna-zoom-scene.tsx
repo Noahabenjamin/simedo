@@ -46,27 +46,27 @@ export function BlueDnaZoomScene({ progressRef }: Props) {
     >
       <CameraRig progressRef={progressRef} />
 
-      <ambientLight intensity={0.35} color="#E0F2FE" />
+      <ambientLight intensity={0.25} color="#CFE5F5" />
       <directionalLight
         position={[4, 5, 4]}
-        intensity={1.6}
-        color="#FFFFFF"
+        intensity={1.0}
+        color="#E2EEF8"
       />
       <directionalLight
         position={[-3, -2, 4]}
-        intensity={0.7}
+        intensity={0.45}
         color="#7DD3FC"
       />
-      <pointLight position={[0, 0, 3]} intensity={0.4} color="#BAE6FD" />
+      <pointLight position={[0, 0, 3]} intensity={0.25} color="#BAE6FD" />
 
-      {/* Environment HDR for crisp specular reflections on the clear-coat
+      {/* Environment HDR for subtle specular reflections on the clear-coat
             materials. Wrapped in its own Suspense so the scene paints with
             light-only shading while the HDR loads. */}
       <Suspense fallback={null}>
         <Environment
           preset="studio"
           background={false}
-          environmentIntensity={0.7}
+          environmentIntensity={0.4}
         />
       </Suspense>
 
@@ -79,11 +79,11 @@ export function BlueDnaZoomScene({ progressRef }: Props) {
 
       <EffectComposer multisampling={2}>
         <Bloom
-          intensity={1.3}
-          luminanceThreshold={0.35}
+          intensity={0.65}
+          luminanceThreshold={0.55}
           luminanceSmoothing={0.9}
           mipmapBlur
-          radius={0.9}
+          radius={0.7}
         />
       </EffectComposer>
     </Canvas>
@@ -135,7 +135,7 @@ function DnaGroup({
   progressRef: React.RefObject<number>;
   children?: React.ReactNode;
 }) {
-  const targetRungMatRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const targetRungGroupRef = useRef<THREE.Group>(null);
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_, delta) => {
@@ -148,20 +148,29 @@ function DnaGroup({
       groupRef.current.rotation.y += delta * 0.45 * motion;
     }
 
-    // Target rung crossfades with the molecular base pair.
-    if (targetRungMatRef.current) {
+    // Target rung crossfades with the molecular base pair — traverse the
+    // wrapper group so every sub-mesh (beads, halves, H-bond hint) fades
+    // together.
+    if (targetRungGroupRef.current) {
       const { a, b, easedT } = findKfWindow(p);
       const atomOp = lerp(a.atomOpacity, b.atomOpacity, easedT);
       const op = 1 - atomOp;
-      const m = targetRungMatRef.current;
-      m.opacity = op;
-      m.transparent = op < 0.995;
-      m.depthWrite = op > 0.5;
-      m.visible = op > 0.01;
+      targetRungGroupRef.current.visible = op > 0.01;
+      targetRungGroupRef.current.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const mat = mesh.material as THREE.MeshPhysicalMaterial | undefined;
+        if (!mat) return;
+        mat.opacity = op;
+        mat.transparent = op < 0.995;
+        mat.depthWrite = op > 0.5;
+      });
     }
   });
 
-  // Backbone curves and rung positions are computed once.
+  // Backbone curves, rung positions, and per-bp base-pair assignments are
+  // all computed once. The pair type (A-T vs G-C) and its orientation are
+  // seeded so the same pattern shows every render — no shimmer.
   const { tubeAGeom, tubeBGeom, rungs } = useMemo(() => {
     const samples = DNA.nBp * 14;
     const ptsA: THREE.Vector3[] = [];
@@ -204,29 +213,50 @@ function DnaGroup({
       false,
     );
 
-    const rungs: { y: number; angle: number; isTarget: boolean }[] = [];
+    // Seeded PRNG so the A-T / G-C pattern is deterministic across renders.
+    let seed = 1337;
+    const rand = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+
+    const rungs: {
+      y: number;
+      angle: number;
+      isTarget: boolean;
+      pairType: "AT" | "GC";
+      flipped: boolean;
+    }[] = [];
     for (let i = 0; i < DNA.nBp; i++) {
       const angle = i * DNA_TWIST_RAD;
       const y = i * DNA.risePerBp - halfH + DNA.risePerBp / 2;
-      rungs.push({ y, angle, isTarget: i === TARGET_BP_INDEX });
+      const isTarget = i === TARGET_BP_INDEX;
+      // Target is pinned to A-T (matches the molecular detail rendered there).
+      rungs.push({
+        y,
+        angle,
+        isTarget,
+        pairType: isTarget ? "AT" : rand() < 0.5 ? "AT" : "GC",
+        flipped: isTarget ? false : rand() < 0.5,
+      });
     }
     return { tubeAGeom: aGeom, tubeBGeom: bGeom, rungs };
   }, []);
 
   return (
     <group ref={groupRef}>
-      {/* Backbones — punchier glow so they read like the reference image. */}
+      {/* Backbones — calmer matte/satin finish, not high-gloss. */}
       <mesh geometry={tubeAGeom}>
         <meshPhysicalMaterial
           color={COLORS.backbone}
           emissive={COLORS.backboneEmissive}
-          emissiveIntensity={0.85}
-          metalness={0.2}
-          roughness={0.16}
-          clearcoat={1}
-          clearcoatRoughness={0.06}
-          reflectivity={0.7}
-          envMapIntensity={1.3}
+          emissiveIntensity={0.35}
+          metalness={0.1}
+          roughness={0.42}
+          clearcoat={0.35}
+          clearcoatRoughness={0.4}
+          reflectivity={0.3}
+          envMapIntensity={0.55}
           toneMapped={false}
         />
       </mesh>
@@ -234,53 +264,181 @@ function DnaGroup({
         <meshPhysicalMaterial
           color={COLORS.backbone}
           emissive={COLORS.backboneEmissive}
-          emissiveIntensity={0.85}
-          metalness={0.2}
-          roughness={0.16}
-          clearcoat={1}
-          clearcoatRoughness={0.06}
-          reflectivity={0.7}
-          envMapIntensity={1.3}
+          emissiveIntensity={0.35}
+          metalness={0.1}
+          roughness={0.42}
+          clearcoat={0.35}
+          clearcoatRoughness={0.4}
+          reflectivity={0.3}
+          envMapIntensity={0.55}
           toneMapped={false}
         />
       </mesh>
 
-      {/* Rungs — target rung is the only one that fades, crossfading with
-          the molecular base pair the camera dives into. */}
+      {/* Rungs — each base pair is rendered as two attachment beads on the
+          backbone (the "phosphate-sugar" nodes), two short half-rungs
+          (one per nucleotide) that emerge from those beads and meet
+          in the middle, and a thin H-bond hint connecting them. The
+          target rung is wrapped in a separate group so the whole unit
+          can crossfade with the molecular base pair beneath it. */}
       <group>
-        {rungs.map((r, i) => (
-          <group key={i} position={[0, r.y, 0]} rotation={[0, r.angle, 0]}>
-            <mesh rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry
-                args={[
-                  DNA.rungRadius,
-                  DNA.rungRadius,
-                  DNA.helixRadius * 2,
-                  DNA.rungRadialSegments,
-                ]}
-              />
-              <meshPhysicalMaterial
-                ref={r.isTarget ? targetRungMatRef : undefined}
-                color={COLORS.rung}
-                emissive={COLORS.rungEmissive}
-                emissiveIntensity={0.55}
-                metalness={0.2}
-                roughness={0.22}
-                clearcoat={0.9}
-                clearcoatRoughness={0.1}
-                envMapIntensity={1.0}
-                toneMapped={false}
-                transparent={r.isTarget}
-              />
-            </mesh>
-          </group>
-        ))}
+        {rungs.map((r, i) => {
+          const rung = (
+            <RungUnit
+              key={i}
+              y={r.y}
+              angle={r.angle}
+              pairType={r.pairType}
+              flipped={r.flipped}
+            />
+          );
+          if (r.isTarget) {
+            return (
+              <group ref={targetRungGroupRef} key={`target-${i}`}>
+                {rung}
+              </group>
+            );
+          }
+          return rung;
+        })}
       </group>
 
       {/* Children render inside the rotating helix group — e.g. the
           molecular target base pair, which sits on the helix axis so
           rotation doesn't translate it. */}
       {children}
+    </group>
+  );
+}
+
+// ---------- One rendered rung (attachment beads + halves + H-bond) -----
+
+const BASE_COLORS: Record<"A" | "T" | "G" | "C", string> = {
+  A: "#38BDF8", // sky
+  T: "#67E8F9", // light cyan
+  G: "#818CF8", // indigo
+  C: "#A5B4FC", // lavender
+};
+const BEAD_COLOR = "#7DD3FC";
+const BEAD_EMISSIVE = "#0EA5E9";
+const HBOND_HINT_COLOR = "#E0F2FE";
+
+// Half-rung geometry: emerges from just inside the attachment bead and
+// stops just before the base pair center, leaving room for the H-bond
+// hint. With helixRadius = 1 these numbers describe one nucleotide's
+// extent toward the centre.
+const HALF_INNER = 0.18; // x where the half-rung meets the H-bond hint
+const HALF_OUTER = 0.92; // x where the half-rung meets its attachment bead
+const HALF_LENGTH = HALF_OUTER - HALF_INNER;
+const HALF_CENTER = (HALF_OUTER + HALF_INNER) / 2;
+const HBOND_LENGTH = HALF_INNER * 2;
+
+function RungUnit({
+  y,
+  angle,
+  pairType,
+  flipped,
+}: {
+  y: number;
+  angle: number;
+  pairType: "AT" | "GC";
+  flipped: boolean;
+}) {
+  // Pick which nucleotide sits on the +x side (toward backbone A).
+  // Watson-Crick pairs: A↔T and G↔C.
+  let leftBase: "A" | "T" | "G" | "C";
+  let rightBase: "A" | "T" | "G" | "C";
+  if (pairType === "AT") {
+    leftBase = flipped ? "A" : "T";
+    rightBase = flipped ? "T" : "A";
+  } else {
+    leftBase = flipped ? "G" : "C";
+    rightBase = flipped ? "C" : "G";
+  }
+
+  const beadRadius = DNA.backboneTubeRadius * 1.35;
+  const halfRadius = DNA.rungRadius;
+  const hbondRadius = DNA.rungRadius * 0.55;
+
+  return (
+    <group position={[0, y, 0]} rotation={[0, angle, 0]}>
+      {/* Attachment bead on the +x backbone */}
+      <mesh position={[DNA.helixRadius, 0, 0]}>
+        <sphereGeometry args={[beadRadius, 18, 18]} />
+        <meshPhysicalMaterial
+          color={BEAD_COLOR}
+          emissive={BEAD_EMISSIVE}
+          emissiveIntensity={0.25}
+          metalness={0.1}
+          roughness={0.4}
+          clearcoat={0.4}
+          clearcoatRoughness={0.35}
+          envMapIntensity={0.5}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Attachment bead on the -x backbone */}
+      <mesh position={[-DNA.helixRadius, 0, 0]}>
+        <sphereGeometry args={[beadRadius, 18, 18]} />
+        <meshPhysicalMaterial
+          color={BEAD_COLOR}
+          emissive={BEAD_EMISSIVE}
+          emissiveIntensity={0.25}
+          metalness={0.1}
+          roughness={0.4}
+          clearcoat={0.4}
+          clearcoatRoughness={0.35}
+          envMapIntensity={0.5}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* +x half (this nucleotide's base, extending inward from backbone A) */}
+      <mesh position={[HALF_CENTER, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[halfRadius, halfRadius, HALF_LENGTH, 14]} />
+        <meshPhysicalMaterial
+          color={BASE_COLORS[rightBase]}
+          emissive={BASE_COLORS[rightBase]}
+          emissiveIntensity={0.18}
+          metalness={0.15}
+          roughness={0.32}
+          clearcoat={0.5}
+          clearcoatRoughness={0.25}
+          envMapIntensity={0.55}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* -x half (this nucleotide's complement) */}
+      <mesh position={[-HALF_CENTER, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[halfRadius, halfRadius, HALF_LENGTH, 14]} />
+        <meshPhysicalMaterial
+          color={BASE_COLORS[leftBase]}
+          emissive={BASE_COLORS[leftBase]}
+          emissiveIntensity={0.18}
+          metalness={0.15}
+          roughness={0.32}
+          clearcoat={0.5}
+          clearcoatRoughness={0.25}
+          envMapIntensity={0.55}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Hydrogen-bond hint between the two bases */}
+      <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[hbondRadius, hbondRadius, HBOND_LENGTH, 12]} />
+        <meshPhysicalMaterial
+          color={HBOND_HINT_COLOR}
+          emissive={HBOND_HINT_COLOR}
+          emissiveIntensity={0.4}
+          metalness={0}
+          roughness={0.5}
+          envMapIntensity={0.3}
+          toneMapped={false}
+          transparent
+          opacity={0.7}
+        />
+      </mesh>
     </group>
   );
 }
