@@ -14,8 +14,11 @@ import {
   evalCameraAtProgress,
   findKfWindow,
   lerp,
+  smoothstep,
 } from "./hero-sequence-config";
 import { TargetBasePair } from "./target-base-pair";
+import { BackgroundHelixes } from "./background-helixes";
+import { Particles } from "./particles";
 
 // R3F scene driven entirely by `progressRef.current`. No React re-renders
 // during scroll inside the 3D subtree.
@@ -67,16 +70,20 @@ export function BlueDnaZoomScene({ progressRef }: Props) {
         />
       </Suspense>
 
-      <DnaGroup progressRef={progressRef} />
-      <TargetBasePair progressRef={progressRef} />
+      <DnaGroup progressRef={progressRef}>
+        <TargetBasePair progressRef={progressRef} />
+      </DnaGroup>
+
+      <BackgroundHelixes />
+      <Particles />
 
       <EffectComposer multisampling={2}>
         <Bloom
-          intensity={0.85}
-          luminanceThreshold={0.55}
-          luminanceSmoothing={0.85}
+          intensity={1.3}
+          luminanceThreshold={0.35}
+          luminanceSmoothing={0.9}
           mipmapBlur
-          radius={0.8}
+          radius={0.9}
         />
       </EffectComposer>
     </Canvas>
@@ -121,20 +128,37 @@ function CameraRig({
 
 // ---------- DNA backbone + non-target rungs -----------------------------
 
-function DnaGroup({ progressRef }: { progressRef: React.RefObject<number> }) {
+function DnaGroup({
+  progressRef,
+  children,
+}: {
+  progressRef: React.RefObject<number>;
+  children?: React.ReactNode;
+}) {
   const targetRungMatRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const groupRef = useRef<THREE.Group>(null);
 
-  useFrame(() => {
-    if (!targetRungMatRef.current) return;
+  useFrame((_, delta) => {
     const p = progressRef.current ?? 0;
-    const { a, b, easedT } = findKfWindow(p);
-    const atomOp = lerp(a.atomOpacity, b.atomOpacity, easedT);
-    const op = 1 - atomOp; // inverse — rung fades out as molecule fades in
-    const m = targetRungMatRef.current;
-    m.opacity = op;
-    m.transparent = op < 0.995;
-    m.depthWrite = op > 0.5;
-    m.visible = op > 0.01;
+
+    // Helix spins around its long axis during the opening, fading off so the
+    // dive can lock onto the (stationary, on-axis) molecular base pair.
+    if (groupRef.current) {
+      const motion = 1 - smoothstep(0.20, 0.55, p);
+      groupRef.current.rotation.y += delta * 0.45 * motion;
+    }
+
+    // Target rung crossfades with the molecular base pair.
+    if (targetRungMatRef.current) {
+      const { a, b, easedT } = findKfWindow(p);
+      const atomOp = lerp(a.atomOpacity, b.atomOpacity, easedT);
+      const op = 1 - atomOp;
+      const m = targetRungMatRef.current;
+      m.opacity = op;
+      m.transparent = op < 0.995;
+      m.depthWrite = op > 0.5;
+      m.visible = op > 0.01;
+    }
   });
 
   // Backbone curves and rung positions are computed once.
@@ -190,19 +214,19 @@ function DnaGroup({ progressRef }: { progressRef: React.RefObject<number> }) {
   }, []);
 
   return (
-    <group>
-      {/* Backbones */}
+    <group ref={groupRef}>
+      {/* Backbones — punchier glow so they read like the reference image. */}
       <mesh geometry={tubeAGeom}>
         <meshPhysicalMaterial
           color={COLORS.backbone}
           emissive={COLORS.backboneEmissive}
-          emissiveIntensity={0.35}
-          metalness={0.25}
-          roughness={0.18}
+          emissiveIntensity={0.85}
+          metalness={0.2}
+          roughness={0.16}
           clearcoat={1}
-          clearcoatRoughness={0.08}
-          reflectivity={0.6}
-          envMapIntensity={1.2}
+          clearcoatRoughness={0.06}
+          reflectivity={0.7}
+          envMapIntensity={1.3}
           toneMapped={false}
         />
       </mesh>
@@ -210,13 +234,13 @@ function DnaGroup({ progressRef }: { progressRef: React.RefObject<number> }) {
         <meshPhysicalMaterial
           color={COLORS.backbone}
           emissive={COLORS.backboneEmissive}
-          emissiveIntensity={0.35}
-          metalness={0.25}
-          roughness={0.18}
+          emissiveIntensity={0.85}
+          metalness={0.2}
+          roughness={0.16}
           clearcoat={1}
-          clearcoatRoughness={0.08}
-          reflectivity={0.6}
-          envMapIntensity={1.2}
+          clearcoatRoughness={0.06}
+          reflectivity={0.7}
+          envMapIntensity={1.3}
           toneMapped={false}
         />
       </mesh>
@@ -239,11 +263,11 @@ function DnaGroup({ progressRef }: { progressRef: React.RefObject<number> }) {
                 ref={r.isTarget ? targetRungMatRef : undefined}
                 color={COLORS.rung}
                 emissive={COLORS.rungEmissive}
-                emissiveIntensity={0.3}
+                emissiveIntensity={0.55}
                 metalness={0.2}
                 roughness={0.22}
                 clearcoat={0.9}
-                clearcoatRoughness={0.12}
+                clearcoatRoughness={0.1}
                 envMapIntensity={1.0}
                 toneMapped={false}
                 transparent={r.isTarget}
@@ -252,6 +276,11 @@ function DnaGroup({ progressRef }: { progressRef: React.RefObject<number> }) {
           </group>
         ))}
       </group>
+
+      {/* Children render inside the rotating helix group — e.g. the
+          molecular target base pair, which sits on the helix axis so
+          rotation doesn't translate it. */}
+      {children}
     </group>
   );
 }

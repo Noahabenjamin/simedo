@@ -42,9 +42,9 @@ export function HeroSequence() {
     return lerpHex(a.bgColor, b.bgColor, easedT);
   }, [progress]);
 
-  // Blue menu fade — appears in the last 5% of scroll.
+  // Menu fade — appears once the flash dies down (~0.93 onward).
   const menuOpacity = useMemo(
-    () => Math.max(0, Math.min(1, (progress - 0.95) / 0.05)),
+    () => Math.max(0, Math.min(1, (progress - 0.93) / 0.06)),
     [progress],
   );
 
@@ -71,14 +71,16 @@ export function HeroSequence() {
         {/* Studio hero overlay (fades out at progress 0 → 0.1) */}
         <StudioHeroLayer opacity={studioOpacity} />
 
-        {/* Blue overlay — fades in late so the screen fills with COLORS.finalBlue */}
+        {/* Flash overlay — bright cyan that peaks at the moment of impact
+            (progress ~0.84) then dissolves to reveal the dark vista. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-20"
           style={{
-            backgroundColor: COLORS.finalBlue,
+            backgroundColor: COLORS.flashCyan,
             opacity: blueOverlay,
             transition: "opacity 80ms linear",
+            mixBlendMode: "screen",
           }}
         />
 

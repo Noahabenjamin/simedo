@@ -3,9 +3,10 @@
 
 import { Vector3 } from "three";
 
-// DNA geometry (matches the smooth blue helix we already had)
+// DNA geometry — long strand so the visible window never reaches the top
+// or bottom of the helix during the opening's pulled-up motion.
 export const DNA = {
-  nBp: 22,
+  nBp: 50,
   helixRadius: 1.0,
   risePerBp: 0.34,
   twistPerBpDeg: 36,
@@ -18,8 +19,8 @@ export const DNA = {
 export const DNA_HEIGHT = DNA.nBp * DNA.risePerBp;
 export const DNA_TWIST_RAD = (DNA.twistPerBpDeg * Math.PI) / 180;
 
-// The base pair the camera dives into. Index 11 = middle of 22.
-export const TARGET_BP_INDEX = 11;
+// Middle of the strand — the base pair the camera dives into.
+export const TARGET_BP_INDEX = 25;
 
 // Y coordinate of the target base pair's geometric center on the helix.
 export const TARGET_BP_Y =
@@ -38,15 +39,16 @@ export const TARGET_ATOM_WORLD: [number, number, number] = [
 ];
 
 export const COLORS = {
-  backbone: "#0EA5E9",
-  backboneEmissive: "#0284C7",
-  rung: "#67E8F9",
+  backbone: "#22D3EE",
+  backboneEmissive: "#0EA5E9",
+  rung: "#7DD3FC",
   rungEmissive: "#0EA5E9",
-  atomC: "#67E8F9", // carbon — light cyan
-  atomN: "#38BDF8", // nitrogen — sky blue
-  atomO: "#0EA5E9", // oxygen — deeper blue
-  atomP: "#0284C7", // phosphorus — darkest blue
-  finalBlue: "#0EA5E9", // the "whole screen blue" value
+  atomC: "#67E8F9",
+  atomN: "#38BDF8",
+  atomO: "#0EA5E9",
+  atomP: "#0284C7",
+  flashCyan: "#0EA5E9", // brief flash overlay at peak of the dive
+  darkVista: "#040814", // dark navy backdrop for the end vista
 };
 
 // ---------- Keyframes ----------------------------------------------------
@@ -79,52 +81,61 @@ const NO_CALLOUTS = {
   guanine: 0,
 };
 
-// Camera tilts gradually from a forward, slightly-elevated viewpoint down
-// into a top-down view of the target base pair. The spline interpolation
-// in `evalCameraAtProgress` keeps velocities continuous across all of
-// these waypoints, so the motion reads as one swoop rather than a chain
-// of segments.
+// The hero sequence is one continuous shot in four beats:
+//  1. Open — DNA shoved to the left of the viewport, slowly rotating
+//     while it appears to spool upward (particles + spin sell the motion).
+//  2. Approach — camera centers and tilts down toward the target base pair;
+//     callouts identify the structure.
+//  3. Dive — camera lands on the molecular adenine/thymine pair; a brief
+//     cyan flash marks the moment of impact.
+//  4. Vista — camera pulls back rapidly into a dark, particle-strewn
+//     backdrop where smaller helixes drift behind the menu.
+//
+// The Catmull-Rom spline in `evalCameraAtProgress` smooths velocity across
+// all of these waypoints, so the motion reads as one continuous swoop.
 export const KEYFRAMES: Keyframe[] = [
-  // 0% — studio hero, DNA renders left side of viewport, small
+  // 0% — studio hero; DNA framed on far-left of viewport (look point shoved
+  //       right so the helix lives in the left third).
   {
     progress: 0.0,
-    cameraPos: v(2.2, 0, 7.2),
-    cameraLookAt: v(0, 0, 0),
+    cameraPos: v(2.4, 0, 7.4),
+    cameraLookAt: v(1.4, 0, 0),
     studioOpacity: 1,
     bgColor: "#FFFFFF",
     blueOverlay: 0,
     atomOpacity: 0,
     callouts: NO_CALLOUTS,
   },
-  // 10% — studio text fully faded; camera drifts slightly closer
+  // 10% — studio text fades; helix still on the left, camera glides slightly
+  //       closer.
   {
     progress: 0.1,
-    cameraPos: v(1.8, 0.05, 6.6),
-    cameraLookAt: v(0, 0.05, 0),
+    cameraPos: v(2.2, 0.05, 7.0),
+    cameraLookAt: v(1.1, 0.05, 0),
     studioOpacity: 0,
-    bgColor: "#FFFFFF",
+    bgColor: "#FAFBFD",
     blueOverlay: 0,
     atomOpacity: 0,
     callouts: NO_CALLOUTS,
   },
-  // 22% — DNA centers and grows; structure callouts fade in
+  // 22% — DNA centers; structural callouts (backbone, hbonds) fade in.
   {
     progress: 0.22,
-    cameraPos: v(0.25, 0.12, 5.0),
-    cameraLookAt: v(0, 0.12, 0),
+    cameraPos: v(0.4, 0.15, 5.4),
+    cameraLookAt: v(0.1, 0.15, 0),
     studioOpacity: 0,
-    bgColor: "#FAFCFF",
+    bgColor: "#F1F5FB",
     blueOverlay: 0,
     atomOpacity: 0,
     callouts: { ...NO_CALLOUTS, backbone: 1, hbonds: 1 },
   },
-  // 35% — closer; backbone/hbonds out, base callouts in
+  // 35% — closer; backbone/hbonds out, base callouts in. Bg starts cooling.
   {
     progress: 0.35,
-    cameraPos: v(0, 0.25, 3.8),
+    cameraPos: v(0, 0.3, 4.0),
     cameraLookAt: v(0, TARGET_BP_Y * 0.6, 0),
     studioOpacity: 0,
-    bgColor: "#F4F8FF",
+    bgColor: "#DDE6F2",
     blueOverlay: 0,
     atomOpacity: 0,
     callouts: {
@@ -136,69 +147,71 @@ export const KEYFRAMES: Keyframe[] = [
       guanine: 1,
     },
   },
-  // 50% — base callouts out, base pair molecular structure starts emerging
+  // 50% — base callouts out, molecular structure starts to crystallise;
+  //       bg darkens toward navy.
   {
     progress: 0.5,
     cameraPos: v(0.05, TARGET_BP_Y + 0.55, 2.4),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#EBF3FF",
+    bgColor: "#5B7DAA",
     blueOverlay: 0,
     atomOpacity: 0.4,
     callouts: NO_CALLOUTS,
   },
-  // 65% — leaning into the base pair; tilt continues toward top-down
+  // 65% — leaning in to read the A-T pair; tilt continues toward top-down.
   {
     progress: 0.65,
     cameraPos: v(0.08, TARGET_BP_Y + 0.85, 1.25),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#DBEAFE",
+    bgColor: "#1E3358",
     blueOverlay: 0,
     atomOpacity: 1,
     callouts: NO_CALLOUTS,
   },
-  // 78% — diving onto the base pair from above-and-slightly-front
+  // 78% — dive begins; flash builds.
   {
     progress: 0.78,
-    cameraPos: v(0.04, TARGET_BP_Y + 0.42, 0.55),
+    cameraPos: v(0.04, TARGET_BP_Y + 0.32, 0.42),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#A7C5FA",
-    blueOverlay: 0.12,
+    bgColor: "#0B1A37",
+    blueOverlay: 0.5,
     atomOpacity: 1,
     callouts: NO_CALLOUTS,
   },
-  // 90% — essentially touching; the blue overlay is doing the rest
+  // 84% — peak of dive; brief full cyan flash (the moment of impact).
   {
-    progress: 0.9,
-    cameraPos: v(0.01, TARGET_BP_Y + 0.14, 0.12),
+    progress: 0.84,
+    cameraPos: v(0.005, TARGET_BP_Y + 0.06, 0.06),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#60A5FA",
-    blueOverlay: 0.6,
-    atomOpacity: 1,
-    callouts: NO_CALLOUTS,
-  },
-  // 96% — whole screen blue
-  {
-    progress: 0.96,
-    cameraPos: v(0, TARGET_BP_Y + 0.04, 0.03),
-    cameraLookAt: v(0, TARGET_BP_Y, 0),
-    studioOpacity: 0,
-    bgColor: COLORS.finalBlue,
+    bgColor: "#08152D",
     blueOverlay: 1,
     atomOpacity: 1,
     callouts: NO_CALLOUTS,
   },
-  // 100% — blue menu fully revealed
+  // 92% — pulling back. Flash dissolves. We're outside the helix now,
+  //       looking back at the strand against the dark vista.
+  {
+    progress: 0.92,
+    cameraPos: v(-2.2, TARGET_BP_Y + 1.8, 6.0),
+    cameraLookAt: v(0, 0, 0),
+    studioOpacity: 0,
+    bgColor: COLORS.darkVista,
+    blueOverlay: 0.18,
+    atomOpacity: 1,
+    callouts: NO_CALLOUTS,
+  },
+  // 100% — vista locked. Helix small on the right, menu reads on the left.
   {
     progress: 1.0,
-    cameraPos: v(0, TARGET_BP_Y + 0.04, 0.03),
-    cameraLookAt: v(0, TARGET_BP_Y, 0),
+    cameraPos: v(-3.6, TARGET_BP_Y + 2.6, 10.0),
+    cameraLookAt: v(0.4, 0, 0),
     studioOpacity: 0,
-    bgColor: COLORS.finalBlue,
-    blueOverlay: 1,
+    bgColor: COLORS.darkVista,
+    blueOverlay: 0,
     atomOpacity: 1,
     callouts: NO_CALLOUTS,
   },
