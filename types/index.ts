@@ -23,6 +23,22 @@ export type SimulationAuthor = {
   avatarUrl: string;
 };
 
+export type Profile = {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  institution: string | null;
+  orcid: string | null;
+  avatarUrl: string;
+  isVerifiedAcademic: boolean;
+  isSeed: boolean;
+  createdAt: string;
+  simulationCount: number;
+  followerCount: number;
+  followingCount: number;
+};
+
 export type Simulation = {
   id: string;
   title: string;

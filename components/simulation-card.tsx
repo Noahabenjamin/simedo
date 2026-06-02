@@ -73,7 +73,10 @@ export function SimulationCard({ simulation }: Props) {
         </div>
 
         <div className="relative z-10 mt-auto flex items-center justify-between pt-2">
-          <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href={`/u/${author.username}`}
+            className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground"
+          >
             <Avatar className="size-6 shrink-0">
               <AvatarImage src={author.avatarUrl} alt="" />
               <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
@@ -83,7 +86,7 @@ export function SimulationCard({ simulation }: Props) {
             <span className="truncate text-xs text-muted-foreground">
               {author.name}
             </span>
-          </div>
+          </Link>
 
           <div className="flex shrink-0 items-center gap-3 font-mono text-xs text-muted-foreground">
             <span className="flex items-center gap-1 tabular-nums">

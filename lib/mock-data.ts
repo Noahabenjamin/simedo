@@ -2,25 +2,26 @@ import type { Simulation, SimulationAuthor } from "@/types";
 
 const thumb = (pdb: string) => `/api/thumbnail/${pdb.toLowerCase()}`;
 
-const avatar = (seed: string) =>
-  `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=0F6E56`;
+// Stays in sync with the seed.sql team-avatar URL.
+const TEAM_AVATAR_URL =
+  "https://api.dicebear.com/9.x/shapes/svg?seed=helix-team&backgroundColor=0a1437&shape1Color=2563eb&shape2Color=60a5fa&shape3Color=93c5fd";
+
+const avatar = (_seed: string) => TEAM_AVATAR_URL;
 
 const pdbUrl = (id: string) => `https://files.rcsb.org/download/${id}.pdb`;
 
-const AUTHORS: Record<string, SimulationAuthor> = {
-  mira: { name: "Mira Okafor", username: "miraokafor", avatarUrl: avatar("Mira Okafor") },
-  jin: { name: "Jin Tanaka", username: "jtanaka", avatarUrl: avatar("Jin Tanaka") },
-  sofia: { name: "Sofia Vargas", username: "svargas", avatarUrl: avatar("Sofia Vargas") },
-  henrik: { name: "Henrik Nilsson", username: "hnilsson", avatarUrl: avatar("Henrik Nilsson") },
-  priya: { name: "Priya Iyer", username: "piyer", avatarUrl: avatar("Priya Iyer") },
-  daniel: { name: "Daniel Cohen", username: "dcohen", avatarUrl: avatar("Daniel Cohen") },
-  aisha: { name: "Aisha Mwangi", username: "amwangi", avatarUrl: avatar("Aisha Mwangi") },
-  lukas: { name: "Lukas Becker", username: "lbecker", avatarUrl: avatar("Lukas Becker") },
-  anya: { name: "Anya Petrova", username: "apetrova", avatarUrl: avatar("Anya Petrova") },
-  marcus: { name: "Marcus Adebayo", username: "madebayo", avatarUrl: avatar("Marcus Adebayo") },
-  yuki: { name: "Yuki Sato", username: "ysato", avatarUrl: avatar("Yuki Sato") },
-  elena: { name: "Elena Rossi", username: "erossi", avatarUrl: avatar("Elena Rossi") },
+const HELIX_TEAM: SimulationAuthor = {
+  name: "Helix Team",
+  username: "helix-team",
+  avatarUrl: avatar("helix-team"),
 };
+
+// Every reference simulation is attributed to a single Helix Team
+// account — no fictional researchers. Real users replace these as they
+// upload their own work.
+const AUTHORS = new Proxy({} as Record<string, SimulationAuthor>, {
+  get: () => HELIX_TEAM,
+});
 
 export const mockSimulations: Simulation[] = [
   // Globins

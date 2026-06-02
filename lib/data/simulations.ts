@@ -241,6 +241,53 @@ export async function getAllFamilies(): Promise<string[]> {
   ).sort();
 }
 
+export async function listSimulationsByUser(
+  userId: string,
+  limit = 24,
+): Promise<Simulation[]> {
+  if (!isDbAvailable()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("simulations")
+    .select(ROW_SELECT)
+    .eq("user_id", userId)
+    .eq("visibility", "public")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as DbSimulationRow[]).map(mapRow);
+}
+
+export async function listSimulationsLikedBy(
+  userId: string,
+  limit = 24,
+): Promise<Simulation[]> {
+  if (!isDbAvailable()) return [];
+  const supabase = await createClient();
+  // Two-step join via the likes table.
+  const { data: likes } = await supabase
+    .from("likes")
+    .select("simulation_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (!likes?.length) return [];
+
+  const ids = likes.map((r) => r.simulation_id as string);
+  const { data, error } = await supabase
+    .from("simulations")
+    .select(ROW_SELECT)
+    .in("id", ids)
+    .eq("visibility", "public");
+  if (error || !data) return [];
+
+  // Preserve like-order.
+  const order = new Map(ids.map((id, i) => [id, i]));
+  return (data as unknown as DbSimulationRow[])
+    .map(mapRow)
+    .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
 // Fire-and-forget view increment. Errors are swallowed — they don't block render.
 export async function incrementViewCount(id: string): Promise<void> {
   if (!isDbAvailable()) return;
