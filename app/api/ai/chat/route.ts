@@ -11,6 +11,9 @@ import {
 } from "@/lib/ai/route";
 import { VIEWER_TOOLS } from "@/lib/ai/tools";
 import type { ChatMessage, StreamEvent, ToolCall } from "@/lib/ai/types";
+import { checkAiRateLimit, recordAiUsage } from "@/lib/ai/rate-limit";
+import { createClient } from "@/lib/supabase/server";
+import { isDbAvailable } from "@/lib/data/db-available";
 
 // Streaming chat endpoint. POST with { simulationId, messages, viewState, deepAnalysis }.
 // Returns text/event-stream lines of StreamEvent JSON.
@@ -42,6 +45,22 @@ export async function POST(req: NextRequest) {
 
   const sim = await getSimulation(body.simulationId);
   if (!sim) return new Response("Simulation not found", { status: 404 });
+
+  // Rate limit before doing any work.
+  const userId = await getUserId();
+  const limit = await checkAiRateLimit(userId);
+  if (!limit.ok) {
+    return new Response(
+      JSON.stringify({ error: limit.reason }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(limit.retryAfterSeconds),
+        },
+      },
+    );
+  }
 
   const bundle = await getContextBundle(sim);
   const lastUser =
@@ -114,12 +133,14 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Log usage (in-memory only for now; Phase 4+ writes to ai_usage table).
+        // Record real usage so rate limits and ai_usage stay honest.
         const final = await sdkStream.finalMessage();
-        console.log("[ai] usage", {
+        await recordAiUsage({
+          userId,
+          simulationId: body.simulationId,
           model,
-          input: final.usage.input_tokens,
-          output: final.usage.output_tokens,
+          inputTokens: final.usage.input_tokens,
+          outputTokens: final.usage.output_tokens,
         });
 
         emit({ type: "done", messageId: crypto.randomUUID() });
@@ -141,4 +162,17 @@ export async function POST(req: NextRequest) {
       Connection: "keep-alive",
     },
   });
+}
+
+async function getUserId(): Promise<string | null> {
+  if (!isDbAvailable()) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
 }

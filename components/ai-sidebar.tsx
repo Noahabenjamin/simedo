@@ -37,6 +37,9 @@ const SUGGESTED_PROMPTS = [
 
 type Source = { label: string; url: string };
 
+const AUTO_SUMMARY_PROMPT =
+  "Give a 3-sentence summary of this simulation: what the structure is, why it's biologically interesting, and one thing to look for when watching the viewer. Use the provided sources and cite each fact with [Source: ...].";
+
 export function AiSidebar({ simulationId, viewerRef }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -45,8 +48,11 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [deepAnalysis, setDeepAnalysis] = useState(false);
+  // null = unknown yet (still loading), true = configured, false = no API key
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const autoSummaryFiredRef = useRef(false);
 
   // Rotate the placeholder when idle.
   useEffect(() => {
@@ -63,15 +69,34 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
-  // Fetch sources once on mount.
+  // Fetch sources and aiEnabled flag once on mount.
   useEffect(() => {
     fetch(`/api/ai/sources?simulationId=${simulationId}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setSources(d?.sources ?? []))
-      .catch(() => setSources([]));
+      .then((d) => {
+        setSources(d?.sources ?? []);
+        setAiEnabled(d?.aiEnabled === true);
+      })
+      .catch(() => {
+        setSources([]);
+        setAiEnabled(false);
+      });
   }, [simulationId]);
 
-  async function send(text: string) {
+  // Auto-summary on first load (after we know AI is configured).
+  useEffect(() => {
+    if (aiEnabled !== true) return;
+    if (autoSummaryFiredRef.current) return;
+    if (messages.length > 0) return;
+    autoSummaryFiredRef.current = true;
+    void send(AUTO_SUMMARY_PROMPT, { hideUserMessage: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiEnabled]);
+
+  async function send(
+    text: string,
+    opts: { hideUserMessage?: boolean } = {},
+  ) {
     const trimmed = text.trim();
     if (!trimmed || isStreaming) return;
 
@@ -89,7 +114,12 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
       createdAt: new Date().toISOString(),
     };
 
-    setMessages((m) => [...m, userMsg, assistantMsg]);
+    // Auto-summary: send the prompt to the API but don't show "give a
+    // 3-sentence summary…" in the conversation thread.
+    const displayedMessages = opts.hideUserMessage
+      ? [assistantMsg]
+      : [userMsg, assistantMsg];
+    setMessages((m) => [...m, ...displayedMessages]);
     setInput("");
     setIsStreaming(true);
 
@@ -257,7 +287,9 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
 
       {/* Conversation */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        {messages.length === 0 ? (
+        {aiEnabled === false ? (
+          <NotConfiguredNotice />
+        ) : messages.length === 0 ? (
           <div className="flex flex-col gap-3 text-sm text-muted-foreground">
             <p>
               Ask anything about this simulation. Answers are grounded in the
@@ -304,25 +336,37 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={PLACEHOLDERS[placeholderIdx]}
-            disabled={isStreaming}
+            placeholder={
+              aiEnabled === false
+                ? "AI guide is not configured"
+                : PLACEHOLDERS[placeholderIdx]
+            }
+            disabled={isStreaming || aiEnabled === false}
             className="h-10 flex-1 rounded-full px-4"
             aria-label="Ask the AI"
           />
           <button
             type="submit"
-            disabled={isStreaming || !input.trim()}
+            disabled={
+              isStreaming || !input.trim() || aiEnabled === false
+            }
             aria-label="Send"
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             <Send className="size-4" />
           </button>
         </div>
-        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <label
+          className={cn(
+            "flex items-center gap-2 text-[11px] text-muted-foreground",
+            aiEnabled === false && "opacity-50",
+          )}
+        >
           <input
             type="checkbox"
             checked={deepAnalysis}
             onChange={(e) => setDeepAnalysis(e.target.checked)}
+            disabled={aiEnabled === false}
             className="size-3"
           />
           Deep analysis (uses the smart model, slower)
@@ -403,6 +447,29 @@ function MessageBubble({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function NotConfiguredNotice() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+      <div className="flex size-12 items-center justify-center rounded-full border border-border text-muted-foreground">
+        <Sparkles className="size-5" strokeWidth={1.5} />
+      </div>
+      <div className="flex max-w-xs flex-col gap-1.5">
+        <p className="text-sm font-medium text-foreground">
+          AI guide is not configured
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Add an{" "}
+          <span className="rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground">
+            ANTHROPIC_API_KEY
+          </span>{" "}
+          environment variable to enable grounded answers about this
+          simulation.
+        </p>
+      </div>
     </div>
   );
 }

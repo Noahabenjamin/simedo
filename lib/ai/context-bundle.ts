@@ -62,16 +62,24 @@ export type CrossrefSummary = {
 };
 
 // ----------------------------------------------------------------------------
-// In-memory cache. 30-day TTL is moot because the process restarts often;
-// real TTL enforcement lives in the DB-backed cache.
+// Two-layer cache:
+//   1. In-process Map (avoids redundant DB roundtrips within one request)
+//   2. ai_context_cache table in Supabase (durable across restarts)
+//
+// TTL is 30 days. PDB metadata changes rarely; paper/UniProt facts even less.
 // ----------------------------------------------------------------------------
 const _memCache = new Map<string, { bundle: ContextBundle; ts: number }>();
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function getContextBundle(sim: Simulation): Promise<ContextBundle> {
-  const cached = _memCache.get(sim.id);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
-    return cached.bundle;
+  const now = Date.now();
+  const memHit = _memCache.get(sim.id);
+  if (memHit && now - memHit.ts < CACHE_TTL_MS) return memHit.bundle;
+
+  const dbHit = await readBundleFromDb(sim.id);
+  if (dbHit && now - new Date(dbHit.fetchedAt).getTime() < CACHE_TTL_MS) {
+    _memCache.set(sim.id, { bundle: dbHit, ts: now });
+    return dbHit;
   }
 
   const pdb: PdbHeader | null = sim.pdbCode
@@ -101,8 +109,47 @@ export async function getContextBundle(sim: Simulation): Promise<ContextBundle> 
     fetchedAt: new Date().toISOString(),
   };
 
-  _memCache.set(sim.id, { bundle, ts: Date.now() });
+  _memCache.set(sim.id, { bundle, ts: now });
+  void writeBundleToDb(sim.id, bundle);
   return bundle;
+}
+
+async function readBundleFromDb(simId: string): Promise<ContextBundle | null> {
+  try {
+    const { isDbAvailable } = await import("@/lib/data/db-available");
+    if (!isDbAvailable()) return null;
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("ai_context_cache")
+      .select("bundle, refreshed_at")
+      .eq("simulation_id", simId)
+      .maybeSingle();
+    if (!data?.bundle) return null;
+    return data.bundle as ContextBundle;
+  } catch (e) {
+    console.warn("[context-bundle] readBundleFromDb failed", e);
+    return null;
+  }
+}
+
+async function writeBundleToDb(
+  simId: string,
+  bundle: ContextBundle,
+): Promise<void> {
+  try {
+    const { isDbAvailable } = await import("@/lib/data/db-available");
+    if (!isDbAvailable()) return;
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    await supabase.from("ai_context_cache").upsert({
+      simulation_id: simId,
+      bundle,
+      refreshed_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn("[context-bundle] writeBundleToDb failed", e);
+  }
 }
 
 function loggedNull<T>(source: string): (e: unknown) => T | null {
