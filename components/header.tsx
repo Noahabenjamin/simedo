@@ -48,7 +48,7 @@ export function Header() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
           <Link
-            href="/sign-in"
+            href="/login"
             className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
           >
             Sign in

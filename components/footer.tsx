@@ -15,17 +15,6 @@ export function Footer() {
           <Link href="/docs" className="transition-colors hover:text-foreground">
             Docs
           </Link>
-          <Link href="/changelog" className="transition-colors hover:text-foreground">
-            Changelog
-          </Link>
-          <Link
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-foreground"
-          >
-            GitHub
-          </Link>
         </nav>
         <p className="text-xs text-muted-foreground/70">
           © 2026 Helix · See molecules in motion

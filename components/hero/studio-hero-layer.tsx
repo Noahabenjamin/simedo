@@ -20,12 +20,6 @@ const NAV_LINKS = [
   { label: "About", href: "/about" },
 ] as const;
 
-const STATS = [
-  { value: "12K", label: "SHARED\nSIMULATIONS" },
-  { value: "4K", label: "ACTIVE\nRESEARCHERS" },
-  { value: "89", label: "INSTITUTIONS\nWORLDWIDE" },
-] as const;
-
 const HEADLINE_WORDS = ["MOLECULES", "IN", "MOTION"] as const;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -117,36 +111,7 @@ export function StudioHeroLayer({ opacity }: Props) {
         </motion.button>
       </nav>
 
-      <div className="relative z-10 flex flex-1 items-center justify-end px-5 py-8 sm:px-8 md:px-12 md:py-0">
-        <div className="flex items-baseline gap-5 sm:gap-8 md:gap-10">
-          {STATS.map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              className="flex flex-col items-end"
-              variants={fadeUp}
-              custom={i + 2}
-              initial="initial"
-              animate="animate"
-            >
-              <div
-                style={{ fontSize: "clamp(1.5rem, 5vw, 3.5rem)" }}
-                className="flex items-baseline gap-0.5 font-semibold leading-none"
-              >
-                <span
-                  className="font-semibold"
-                  style={{ fontSize: "0.5em", color: ACCENT }}
-                >
-                  +
-                </span>
-                <span className="tabular-nums text-black">{stat.value}</span>
-              </div>
-              <div className="mt-1.5 whitespace-pre-line text-right text-[10px] font-semibold uppercase leading-tight tracking-widest text-black sm:text-xs md:text-sm">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+      <div className="relative z-10 flex-1" />
 
       <div className="relative z-10 flex flex-col gap-6 px-5 pb-8 sm:px-8 md:gap-12 md:px-12 md:pb-12">
         <div className="flex items-center justify-between gap-4">

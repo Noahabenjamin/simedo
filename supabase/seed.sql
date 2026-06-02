@@ -121,7 +121,7 @@ insert into public.simulations (
     '1HHO', 'https://files.rcsb.org/download/1HHO.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1HHO&font=roboto',
     'protein', 'Globins', 'Homo sapiens', 'equilibrium', 2.1, 'cc-by', 'public',
-    8200, 612, 23, '2026-05-18T09:12:00Z', '2026-05-18T09:12:00Z'),
+    0, 0, 0, '2026-05-18T09:12:00Z', '2026-05-18T09:12:00Z'),
 
   ('11111111-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000005',
     'Deoxyhemoglobin, T state',
@@ -129,7 +129,7 @@ insert into public.simulations (
     '4HHB', 'https://files.rcsb.org/download/4HHB.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=4HHB&font=roboto',
     'protein', 'Globins', 'Homo sapiens', 'equilibrium', 1.74, 'cc-by', 'public',
-    5400, 388, 19, '2026-04-28T18:55:00Z', '2026-04-28T18:55:00Z'),
+    0, 0, 0, '2026-04-28T18:55:00Z', '2026-04-28T18:55:00Z'),
 
   ('11111111-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004',
     'Sperm whale myoglobin',
@@ -137,7 +137,7 @@ insert into public.simulations (
     '1MBN', 'https://files.rcsb.org/download/1MBN.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1MBN&font=roboto',
     'protein', 'Globins', 'Physeter macrocephalus', 'equilibrium', 2.0, 'cc-by', 'public',
-    4100, 297, 14, '2026-05-02T11:20:00Z', '2026-05-02T11:20:00Z'),
+    0, 0, 0, '2026-05-02T11:20:00Z', '2026-05-02T11:20:00Z'),
 
   ('11111111-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000003',
     'β2 adrenergic receptor–Gs complex',
@@ -145,7 +145,7 @@ insert into public.simulations (
     '3SN6', 'https://files.rcsb.org/download/3SN6.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=3SN6&font=roboto',
     'receptor', 'GPCRs', 'Homo sapiens', 'binding', 3.2, 'cc-by', 'public',
-    14200, 1083, 96, '2026-05-12T15:40:00Z', '2026-05-12T15:40:00Z'),
+    0, 0, 0, '2026-05-12T15:40:00Z', '2026-05-12T15:40:00Z'),
 
   ('11111111-0000-0000-0000-000000000005', '00000000-0000-0000-0000-00000000000b',
     'Bovine rhodopsin, dark state',
@@ -153,7 +153,7 @@ insert into public.simulations (
     '6CMO', 'https://files.rcsb.org/download/6CMO.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=6CMO&font=roboto',
     'receptor', 'GPCRs', 'Bos taurus', 'equilibrium', 3.0, 'cc-by', 'public',
-    6800, 491, 32, '2026-04-22T19:10:00Z', '2026-04-22T19:10:00Z'),
+    0, 0, 0, '2026-04-22T19:10:00Z', '2026-04-22T19:10:00Z'),
 
   ('11111111-0000-0000-0000-000000000006', '00000000-0000-0000-0000-00000000000a',
     'CRISPR-Cas9 with sgRNA and DNA',
@@ -161,7 +161,7 @@ insert into public.simulations (
     '4OO8', 'https://files.rcsb.org/download/4OO8.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=4OO8&font=roboto',
     'enzyme', 'CRISPR-Cas9', 'Streptococcus pyogenes', 'equilibrium', 2.5, 'cc-by', 'public',
-    19400, 1620, 211, '2026-05-15T08:30:00Z', '2026-05-15T08:30:00Z'),
+    0, 0, 0, '2026-05-15T08:30:00Z', '2026-05-15T08:30:00Z'),
 
   ('11111111-0000-0000-0000-000000000007', '00000000-0000-0000-0000-00000000000c',
     'Intact mouse IgG2a antibody',
@@ -169,7 +169,7 @@ insert into public.simulations (
     '1IGT', 'https://files.rcsb.org/download/1IGT.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1IGT&font=roboto',
     'antibody', 'Immunoglobulins', 'Mus musculus', 'equilibrium', 2.8, 'cc-by', 'public',
-    3200, 248, 11, '2026-04-09T13:45:00Z', '2026-04-09T13:45:00Z'),
+    0, 0, 0, '2026-04-09T13:45:00Z', '2026-04-09T13:45:00Z'),
 
   ('11111111-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000006',
     'Protein kinase A, catalytic subunit',
@@ -177,7 +177,7 @@ insert into public.simulations (
     '1ATP', 'https://files.rcsb.org/download/1ATP.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1ATP&font=roboto',
     'enzyme', 'Kinases', 'Mus musculus', 'equilibrium', 2.2, 'cc-by', 'public',
-    5100, 372, 18, '2026-03-30T10:15:00Z', '2026-03-30T10:15:00Z'),
+    0, 0, 0, '2026-03-30T10:15:00Z', '2026-03-30T10:15:00Z'),
 
   ('11111111-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000009',
     'Src tyrosine kinase, autoinhibited',
@@ -185,7 +185,7 @@ insert into public.simulations (
     '2SRC', 'https://files.rcsb.org/download/2SRC.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=2SRC&font=roboto',
     'enzyme', 'Kinases', 'Homo sapiens', 'equilibrium', 1.5, 'cc-by', 'public',
-    4400, 318, 9, '2026-04-04T17:25:00Z', '2026-04-04T17:25:00Z'),
+    0, 0, 0, '2026-04-04T17:25:00Z', '2026-04-04T17:25:00Z'),
 
   ('11111111-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-000000000001',
     'Hen egg-white lysozyme',
@@ -193,7 +193,7 @@ insert into public.simulations (
     '1AKI', 'https://files.rcsb.org/download/1AKI.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1AKI&font=roboto',
     'enzyme', 'Lysozymes', 'Gallus gallus', 'equilibrium', 1.5, 'cc-by', 'public',
-    12400, 980, 47, '2026-05-20T14:30:00Z', '2026-05-20T14:30:00Z'),
+    0, 0, 0, '2026-05-20T14:30:00Z', '2026-05-20T14:30:00Z'),
 
   ('11111111-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-000000000008',
     'Bovine pancreatic trypsin inhibitor (BPTI)',
@@ -201,7 +201,7 @@ insert into public.simulations (
     '4PTI', 'https://files.rcsb.org/download/4PTI.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=4PTI&font=roboto',
     'protein', 'Kunitz inhibitors', 'Bos taurus', 'folding', 1.0, 'cc-by', 'public',
-    2100, 165, 6, '2026-02-26T09:00:00Z', '2026-02-26T09:00:00Z'),
+    0, 0, 0, '2026-02-26T09:00:00Z', '2026-02-26T09:00:00Z'),
 
   ('11111111-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-000000000004',
     'Drew–Dickerson B-DNA dodecamer',
@@ -209,7 +209,7 @@ insert into public.simulations (
     '1BNA', 'https://files.rcsb.org/download/1BNA.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1BNA&font=roboto',
     'dna', null, 'synthetic', 'equilibrium', 1.9, 'cc-by', 'public',
-    3100, 240, 8, '2026-05-10T11:05:00Z', '2026-05-10T11:05:00Z'),
+    0, 0, 0, '2026-05-10T11:05:00Z', '2026-05-10T11:05:00Z'),
 
   ('11111111-0000-0000-0000-00000000000d', '00000000-0000-0000-0000-000000000007',
     'Spinach aquaporin SoPIP2;1',
@@ -217,7 +217,7 @@ insert into public.simulations (
     '2NWL', 'https://files.rcsb.org/download/2NWL.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=2NWL&font=roboto',
     'membrane', 'Aquaporins', 'Spinacia oleracea', 'equilibrium', 1.9, 'cc-by', 'public',
-    2800, 214, 7, '2026-03-12T16:00:00Z', '2026-03-12T16:00:00Z'),
+    0, 0, 0, '2026-03-12T16:00:00Z', '2026-03-12T16:00:00Z'),
 
   ('11111111-0000-0000-0000-00000000000e', '00000000-0000-0000-0000-000000000003',
     'SARS-CoV-2 spike, closed prefusion',
@@ -225,7 +225,7 @@ insert into public.simulations (
     '6VXX', 'https://files.rcsb.org/download/6VXX.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=6VXX&font=roboto',
     'protein', 'Coronavirus spike', 'SARS-CoV-2', 'equilibrium', 2.8, 'cc-by', 'public',
-    24800, 2104, 312, '2026-05-15T22:40:00Z', '2026-05-15T22:40:00Z'),
+    0, 0, 0, '2026-05-15T22:40:00Z', '2026-05-15T22:40:00Z'),
 
   ('11111111-0000-0000-0000-00000000000f', '00000000-0000-0000-0000-000000000008',
     'Ubiquitin',
@@ -233,7 +233,7 @@ insert into public.simulations (
     '1UBQ', 'https://files.rcsb.org/download/1UBQ.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1UBQ&font=roboto',
     'protein', 'Ubiquitin', 'Homo sapiens', 'folding', 1.8, 'cc-by', 'public',
-    2700, 198, 11, '2026-02-08T16:45:00Z', '2026-02-08T16:45:00Z'),
+    0, 0, 0, '2026-02-08T16:45:00Z', '2026-02-08T16:45:00Z'),
 
   ('11111111-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000006',
     'Crambin',
@@ -241,7 +241,7 @@ insert into public.simulations (
     '1CRN', 'https://files.rcsb.org/download/1CRN.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1CRN&font=roboto',
     'protein', null, 'Crambe abyssinica', 'folding', 0.54, 'cc-by', 'public',
-    1800, 142, 4, '2026-04-15T13:20:00Z', '2026-04-15T13:20:00Z'),
+    0, 0, 0, '2026-04-15T13:20:00Z', '2026-04-15T13:20:00Z'),
 
   ('11111111-0000-0000-0000-000000000011', '00000000-0000-0000-0000-00000000000c',
     'Nucleosome core particle',
@@ -249,7 +249,7 @@ insert into public.simulations (
     '1KX5', 'https://files.rcsb.org/download/1KX5.pdb',
     'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1KX5&font=roboto',
     'protein', 'Histones', 'Xenopus laevis', 'equilibrium', 1.9, 'cc-by', 'public',
-    7200, 538, 41, '2026-03-05T10:50:00Z', '2026-03-05T10:50:00Z')
+    0, 0, 0, '2026-03-05T10:50:00Z', '2026-03-05T10:50:00Z')
 on conflict (id) do nothing;
 
 -- Sprinkle some likes and tags so the platform doesn't feel cold.

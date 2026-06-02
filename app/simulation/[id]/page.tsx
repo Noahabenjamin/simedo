@@ -94,10 +94,7 @@ export default async function SimulationPage({ params }: Props) {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <Link
-                href={`/u/${simulation.author.username}`}
-                className="flex items-center gap-3 transition-opacity hover:opacity-80"
-              >
+              <div className="flex items-center gap-3">
                 <Avatar className="size-10">
                   <AvatarImage src={simulation.author.avatarUrl} alt="" />
                   <AvatarFallback className="bg-muted text-xs text-muted-foreground">
@@ -112,7 +109,7 @@ export default async function SimulationPage({ params }: Props) {
                     @{simulation.author.username} · {createdAt}
                   </span>
                 </div>
-              </Link>
+              </div>
 
               <div className="flex items-center gap-5 font-mono text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5 tabular-nums">

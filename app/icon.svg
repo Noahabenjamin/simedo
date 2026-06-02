@@ -1,0 +1,28 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <defs>
+    <linearGradient id="helix-strand" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9" />
+      <stop offset="0.5" stop-color="#2dd4bf" />
+      <stop offset="1" stop-color="#0d9488" />
+    </linearGradient>
+    <linearGradient id="helix-rung" x1="22" y1="0" x2="42" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.35" />
+      <stop offset="0.5" stop-color="#5eead4" stop-opacity="0.9" />
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0.35" />
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round">
+    <line x1="22" y1="8" x2="42" y2="8" stroke="url(#helix-rung)" stroke-width="2" />
+    <line x1="22" y1="24" x2="42" y2="24" stroke="url(#helix-rung)" stroke-width="2" />
+    <line x1="22" y1="40" x2="42" y2="40" stroke="url(#helix-rung)" stroke-width="2" />
+    <line x1="22" y1="56" x2="42" y2="56" stroke="url(#helix-rung)" stroke-width="2" />
+    <path
+      d="M 32 0 C 44 4, 44 12, 32 16 C 20 20, 20 28, 32 32 C 44 36, 44 44, 32 48 C 20 52, 20 60, 32 64"
+      stroke="url(#helix-strand)" stroke-width="4"
+    />
+    <path
+      d="M 32 0 C 20 4, 20 12, 32 16 C 44 20, 44 28, 32 32 C 20 36, 20 44, 32 48 C 44 52, 44 60, 32 64"
+      stroke="url(#helix-strand)" stroke-width="4"
+    />
+  </g>
+</svg>
