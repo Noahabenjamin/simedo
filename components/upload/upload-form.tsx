@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { createSimulationFromUpload } from "@/lib/upload-actions";
+import { sniffFile } from "@/lib/upload/magic-bytes";
 
 const CATEGORIES = [
   { id: "protein", label: "Protein dynamics" },
@@ -195,6 +196,24 @@ export function UploadForm() {
       }
 
       try {
+        // Magic-byte sniff before we waste bytes on Storage.
+        if (topologyFile) {
+          const sniff = await sniffFile(topologyFile, "structure");
+          if (sniff.verdict === "wrong-format") {
+            toast.error("Topology file looks wrong", { description: sniff.reason });
+            setSubmitting(false);
+            return;
+          }
+        }
+        if (trajectoryFile) {
+          const sniff = await sniffFile(trajectoryFile, "trajectory");
+          if (sniff.verdict === "wrong-format") {
+            toast.error("Trajectory file looks wrong", { description: sniff.reason });
+            setSubmitting(false);
+            return;
+          }
+        }
+
         let trajectoryStoragePath: string | null = null;
         let topologyStoragePath: string | null = null;
 

@@ -104,7 +104,44 @@ export async function getSimulation(id: string): Promise<Simulation | null> {
     .eq("id", id)
     .single();
   if (error || !data) return null;
-  return mapRow(data as unknown as DbSimulationRow);
+  // resolveStorageUrls() turns any storage://<bucket>/<path> values into
+  // short-lived signed URLs that the viewer can fetch directly. This is
+  // the only path that needs them — list/related views never load the
+  // actual files into the viewer.
+  return await resolveStorageUrls(mapRow(data as unknown as DbSimulationRow));
+}
+
+// Lifetime of a signed download URL handed to the viewer. One hour is
+// long enough that scrubbing through a trajectory survives, short enough
+// that a leaked link won't outlive the session.
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
+async function resolveStorageUrls(sim: Simulation): Promise<Simulation> {
+  const pdbUrl = await maybeSign(sim.pdbUrl);
+  const trajectoryUrl = sim.trajectoryUrl
+    ? await maybeSign(sim.trajectoryUrl)
+    : null;
+  return { ...sim, pdbUrl, trajectoryUrl };
+}
+
+async function maybeSign(url: string): Promise<string> {
+  if (!url.startsWith("storage://")) return url;
+  // storage://<bucket>/<path>
+  const stripped = url.slice("storage://".length);
+  const slash = stripped.indexOf("/");
+  if (slash < 0) return url;
+  const bucket = stripped.slice(0, slash);
+  const path = stripped.slice(slash + 1);
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    return data?.signedUrl ?? url;
+  } catch (e) {
+    console.warn("[storage] sign failed", e);
+    return url;
+  }
 }
 
 export async function listSimulations(opts: {
