@@ -11,6 +11,7 @@ import {
 import { PlaybackBar } from "./playback-bar";
 import { HoverTooltip, type HoverInfo } from "./hover-tooltip";
 import { ViewerSkeleton } from "./viewer-skeleton";
+import { emit, subscribe } from "@/lib/viewer-bus";
 
 export type AtomClickInfo = {
   resname: string;
@@ -190,9 +191,17 @@ export function MolecularViewer({
       });
 
       stage.signals.clicked.add((pickingProxy) => {
-        if (pickingProxy?.atom && onAtomClickRef.current) {
+        if (pickingProxy?.atom) {
           const a = pickingProxy.atom;
-          onAtomClickRef.current({
+          // Broadcast so the comment composer can capture the residue
+          // even if it doesn't share a parent with the viewer.
+          emit("helix:viewer-atom-pick", {
+            chain: a.chainname,
+            residueNumber: a.resno,
+            resname: a.resname,
+            atomname: a.atomname,
+          });
+          onAtomClickRef.current?.({
             resname: a.resname,
             resno: a.resno,
             chainname: a.chainname,
@@ -245,6 +254,9 @@ export function MolecularViewer({
           traj.signals.frameChanged.add((frame) => {
             setCurrentFrame(frame);
             onFrameChangeRef.current?.(frame);
+            // Broadcast so the comment composer can capture the
+            // current frame for an anchored comment.
+            emit("helix:viewer-frame", { frame });
           });
           traj.signals.gotNumframes.add((n) => setTotalFrames(n));
 
@@ -325,6 +337,53 @@ export function MolecularViewer({
       stageRef.current.setParameters({ backgroundColor: bgColor });
     }
   }, [bgColor]);
+
+  // Subscribe to jump-here events from outside (comments anchors).
+  useEffect(() => {
+    const unsubFocus = subscribe("helix:viewer-focus", ({ chain, residueNumber }) => {
+      const comp = componentRef.current;
+      if (!comp) return;
+      const sele = `:${chain} and ${residueNumber}`;
+      if (highlightRepRef.current) {
+        comp.removeRepresentation(highlightRepRef.current);
+      }
+      highlightRepRef.current = comp.addRepresentation("ball+stick", {
+        sele,
+        color: "#1e40af",
+        radiusScale: 1.4,
+      });
+      try {
+        comp.autoView(sele, 800);
+      } catch {
+        stageRef.current?.autoView(800);
+      }
+    });
+    const unsubGoto = subscribe("helix:viewer-goto-frame", ({ frame }) => {
+      trajRef.current?.setFrame(frame);
+    });
+    const unsubHi = subscribe("helix:viewer-highlight", ({ selection }) => {
+      const comp = componentRef.current;
+      if (!comp) return;
+      if (highlightRepRef.current) {
+        comp.removeRepresentation(highlightRepRef.current);
+      }
+      highlightRepRef.current = comp.addRepresentation("ball+stick", {
+        sele: selection,
+        color: "#1e40af",
+        radiusScale: 1.2,
+      });
+      try {
+        comp.autoView(selection, 800);
+      } catch {
+        stageRef.current?.autoView(800);
+      }
+    });
+    return () => {
+      unsubFocus();
+      unsubGoto();
+      unsubHi();
+    };
+  }, []);
 
   useEffect(() => {
     const component = componentRef.current;

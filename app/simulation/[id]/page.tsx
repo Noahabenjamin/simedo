@@ -6,6 +6,8 @@ import { SimulationWorkspace } from "@/components/simulation-workspace";
 import { RelatedSimulations } from "@/components/related-simulations";
 import { ShareButton } from "@/components/collab/share-button";
 import { SimulationJsonLd } from "@/components/sim/json-ld";
+import { CommentSection } from "@/components/comments/comment-section";
+import type { CommentSort } from "@/lib/data/comments";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCount, initials } from "@/lib/format";
 import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
@@ -17,6 +19,7 @@ import {
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ sort?: string }>;
 };
 
 const SITE_URL =
@@ -55,8 +58,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function SimulationPage({ params }: Props) {
+const VALID_SORTS: CommentSort[] = ["top", "newest", "oldest"];
+
+export default async function SimulationPage({ params, searchParams }: Props) {
   const { id } = await params;
+  const sp = await searchParams;
+  const sort: CommentSort = VALID_SORTS.includes(sp.sort as CommentSort)
+    ? (sp.sort as CommentSort)
+    : "top";
   const simulation = await getSimulation(id);
   if (!simulation) notFound();
 
@@ -180,18 +189,8 @@ export default async function SimulationPage({ params }: Props) {
             }
           />
 
-          <div className="mt-4 rounded-2xl border border-border bg-card px-6 py-16">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full border border-border text-muted-foreground">
-                <MessageCircle className="size-5" strokeWidth={1.5} />
-              </div>
-              <p className="text-sm font-medium text-foreground">
-                Comments coming soon
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Phase 7 will add discussion threads
-              </p>
-            </div>
+          <div id="discussion" className="mt-4 scroll-mt-24">
+            <CommentSection simulationId={id} sort={sort} />
           </div>
         </div>
       </section>
