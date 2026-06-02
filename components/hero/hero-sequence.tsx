@@ -6,6 +6,7 @@ import { StudioHeroLayer } from "./studio-hero-layer";
 import { DnaCallouts } from "./dna-callouts";
 import { BlueMenu } from "./blue-menu";
 import { useHeroScroll } from "./use-hero-scroll";
+import { useIsNarrow, useReducedMotion } from "@/lib/hooks/use-media-pref";
 import {
   COLORS,
   findKfWindow,
@@ -26,6 +27,12 @@ const BlueDnaZoomScene = dynamic(
 export function HeroSequence() {
   const heroRef = useRef<HTMLElement>(null);
   const { progress, progressRef } = useHeroScroll(heroRef);
+  const reducedMotion = useReducedMotion();
+  const narrow = useIsNarrow(640);
+
+  if (reducedMotion) {
+    return <ReducedMotionHero />;
+  }
 
   const studioOpacity = useMemo(
     () => interpolateScalar(progress, (k) => k.studioOpacity),
@@ -63,7 +70,7 @@ export function HeroSequence() {
         style={{ background: bgColor }}
       >
         {/* 3D scene — always rendered; camera moves through keyframes */}
-        <BlueDnaZoomScene progressRef={progressRef} />
+        <BlueDnaZoomScene progressRef={progressRef} lite={narrow} />
 
         {/* Callouts overlay (DOM, screen-space) */}
         <DnaCallouts progress={progress} />
@@ -89,6 +96,26 @@ export function HeroSequence() {
 
         {/* Scroll hint when at the very top */}
         <ScrollHint opacity={progress < 0.04 ? 1 - progress / 0.04 : 0} />
+      </div>
+    </section>
+  );
+}
+
+// Static fallback for users who request reduced motion. Skips the
+// scroll-driven sequence and renders the studio intro + a directly-
+// accessible navigation menu so the page is fully usable without
+// scrolling.
+function ReducedMotionHero() {
+  return (
+    <section className="relative w-full" style={{ minHeight: "100vh" }}>
+      <div
+        className="relative h-screen w-full overflow-hidden"
+        style={{ background: "#FFF8E1" }}
+      >
+        <StudioHeroLayer opacity={1} />
+      </div>
+      <div className="relative" style={{ background: COLORS.darkVista }}>
+        <BlueMenu opacity={1} />
       </div>
     </section>
   );

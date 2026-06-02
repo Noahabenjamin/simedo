@@ -35,13 +35,17 @@ import { Particles } from "./particles";
 
 type Props = {
   progressRef: React.RefObject<number>;
+  // `lite` skips post-processing and the HDR environment, and serves
+  // fewer particles — used on narrow viewports and on devices that flag
+  // themselves as low-end so we keep the hero responsive.
+  lite?: boolean;
 };
 
-export function BlueDnaZoomScene({ progressRef }: Props) {
+export function BlueDnaZoomScene({ progressRef, lite = false }: Props) {
   return (
     <Canvas
       gl={{ antialias: true, alpha: true, toneMappingExposure: 1.05 }}
-      dpr={[1, 2]}
+      dpr={lite ? [1, 1.5] : [1, 2]}
       style={{ position: "absolute", inset: 0 }}
     >
       <CameraRig progressRef={progressRef} />
@@ -59,33 +63,36 @@ export function BlueDnaZoomScene({ progressRef }: Props) {
       />
       <pointLight position={[0, 0, 3]} intensity={0.25} color="#BAE6FD" />
 
-      {/* Environment HDR for subtle specular reflections on the clear-coat
-            materials. Wrapped in its own Suspense so the scene paints with
-            light-only shading while the HDR loads. */}
-      <Suspense fallback={null}>
-        <Environment
-          preset="studio"
-          background={false}
-          environmentIntensity={0.4}
-        />
-      </Suspense>
+      {/* Environment HDR for subtle specular reflections — skipped in
+          lite mode to keep the initial paint cheap on mobile. */}
+      {!lite && (
+        <Suspense fallback={null}>
+          <Environment
+            preset="studio"
+            background={false}
+            environmentIntensity={0.4}
+          />
+        </Suspense>
+      )}
 
       <DnaGroup progressRef={progressRef}>
         <TargetBasePair progressRef={progressRef} />
       </DnaGroup>
 
       <BackgroundHelixes />
-      <Particles />
+      <Particles lite={lite} />
 
-      <EffectComposer multisampling={2}>
-        <Bloom
-          intensity={0.65}
-          luminanceThreshold={0.55}
-          luminanceSmoothing={0.9}
-          mipmapBlur
-          radius={0.7}
-        />
-      </EffectComposer>
+      {!lite && (
+        <EffectComposer multisampling={2}>
+          <Bloom
+            intensity={0.65}
+            luminanceThreshold={0.55}
+            luminanceSmoothing={0.9}
+            mipmapBlur
+            radius={0.7}
+          />
+        </EffectComposer>
+      )}
     </Canvas>
   );
 }

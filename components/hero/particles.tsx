@@ -12,15 +12,26 @@ import * as THREE from "three";
 // and y-positions wrap modulo the cylinder height — so it loops forever
 // without visual seams.
 
-const COUNT = 220;
+const FULL_COUNT = 220;
+const LITE_COUNT = 80;
 const RADIUS = 6;
 const HEIGHT = 20;
 
-export function Particles() {
+type Props = { lite?: boolean };
+
+export function Particles({ lite = false }: Props) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const count = lite ? LITE_COUNT : FULL_COUNT;
 
   // Per-instance state: home position (radius, angle, baseY), drift speed.
+  // Seeded PRNG so the particle field stays stable across renders and
+  // doesn't trip the "no impure functions during render" rule.
   const state = useMemo(() => {
+    let seed = 1729;
+    const rand = () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
     const items: {
       r: number;
       a: number;
@@ -28,17 +39,17 @@ export function Particles() {
       speed: number;
       size: number;
     }[] = [];
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       items.push({
-        r: 0.3 + Math.random() * RADIUS,
-        a: Math.random() * Math.PI * 2,
-        y0: Math.random() * HEIGHT - HEIGHT / 2,
-        speed: 0.12 + Math.random() * 0.28,
-        size: 0.005 + Math.random() * 0.018,
+        r: 0.3 + rand() * RADIUS,
+        a: rand() * Math.PI * 2,
+        y0: rand() * HEIGHT - HEIGHT / 2,
+        speed: 0.12 + rand() * 0.28,
+        size: 0.005 + rand() * 0.018,
       });
     }
     return items;
-  }, []);
+  }, [count]);
 
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   const tmpV = useMemo(() => new THREE.Vector3(), []);
@@ -46,7 +57,7 @@ export function Particles() {
   useFrame((s) => {
     if (!ref.current) return;
     const t = s.clock.getElapsedTime();
-    for (let i = 0; i < COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const p = state[i];
       // Drift upward, wrapping when past the top.
       let y = p.y0 + t * p.speed;
@@ -60,7 +71,7 @@ export function Particles() {
   });
 
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, COUNT]} frustumCulled={false}>
+    <instancedMesh ref={ref} args={[undefined, undefined, count]} frustumCulled={false}>
       <sphereGeometry args={[1, 6, 6]} />
       <meshBasicMaterial
         color="#BAE6FD"
