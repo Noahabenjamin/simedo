@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials } from "@/lib/format";
 import { deleteComment, toggleReaction } from "@/lib/comment-actions";
 import { emit } from "@/lib/viewer-bus";
+import { renderInline } from "@/lib/format/markdown";
 import type { Comment } from "@/lib/data/comments";
 import { CommentComposer } from "./comment-composer";
 
@@ -98,7 +99,7 @@ export function CommentItem({ comment, viewerUserId, depth = 0 }: Props) {
           </div>
         )}
 
-        <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+        <div className="flex flex-col gap-2 text-sm leading-relaxed text-foreground/90">
           {renderBody(comment.body)}
         </div>
 
@@ -206,19 +207,29 @@ export function CommentItem({ comment, viewerUserId, depth = 0 }: Props) {
   );
 }
 
-// Render comment body with @username mentions linked to profile pages.
-// Light-touch only: no markdown lib, no XSS surface, no surprise rendering.
+// Render a comment body: walk paragraph-by-paragraph, then interleave
+// markdown (bold, italic, code, links) with @-mention linking. Plain
+// text only — the markdown renderer never emits raw HTML.
 function renderBody(body: string): React.ReactNode {
+  const paragraphs = body.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  return paragraphs.map((para, i) => (
+    <p key={i} className="whitespace-pre-wrap">
+      {renderMentionsAndMarkdown(para)}
+    </p>
+  ));
+}
+
+function renderMentionsAndMarkdown(text: string): React.ReactNode {
   const re = /@([a-z0-9_-]{2,32})/gi;
   const out: React.ReactNode[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;
-  while ((m = re.exec(body)) !== null) {
-    if (m.index > last) out.push(body.slice(last, m.index));
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(<span key={`t-${i}`}>{renderInline(text.slice(last, m.index))}</span>);
     out.push(
       <Link
-        key={i++}
+        key={`m-${i++}`}
         href={`/u/${m[1].toLowerCase()}`}
         className="text-foreground underline-offset-2 hover:text-primary hover:underline"
       >
@@ -227,6 +238,8 @@ function renderBody(body: string): React.ReactNode {
     );
     last = m.index + m[0].length;
   }
-  if (last < body.length) out.push(body.slice(last));
+  if (last < text.length) {
+    out.push(<span key={`t-${i}`}>{renderInline(text.slice(last))}</span>);
+  }
   return out;
 }

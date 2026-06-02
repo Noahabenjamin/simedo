@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { renderInline } from "@/lib/format/markdown";
 import type { MolecularViewerHandle } from "@/components/viewer/molecular-viewer";
 import type { ChatMessage, StreamEvent, ToolCall } from "@/lib/ai/types";
 
@@ -315,7 +316,9 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
                 key={m.id}
                 message={m}
                 isLast={i === messages.length - 1}
+                sources={sources}
                 onReport={() => report(m.id)}
+                onOpenSources={() => setSourcesOpen(true)}
                 onDispatchTool={dispatchTool}
               />
             ))}
@@ -378,12 +381,16 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
 
 function MessageBubble({
   message,
+  sources,
   onReport,
+  onOpenSources,
   onDispatchTool,
 }: {
   message: ChatMessage;
   isLast: boolean;
+  sources: Source[];
   onReport: () => void;
+  onOpenSources: () => void;
   onDispatchTool: (tool: ToolCall) => void;
 }) {
   const isUser = message.role === "user";
@@ -400,7 +407,7 @@ function MessageBubble({
           isUser ? "text-foreground" : "text-foreground/90",
         )}
       >
-        {renderWithCitations(message.content)}
+        {renderMessageBody(message.content, sources, onOpenSources)}
       </div>
 
       {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
@@ -495,26 +502,78 @@ function toolButtonLabel(tc: ToolCall): string {
   return "Show me where";
 }
 
-// Light-touch [Source: ...] rendering. Real superscript-with-hover comes later.
-function renderWithCitations(text: string): React.ReactNode {
+// Render AI message body: split on paragraphs, then within each paragraph
+// interleave markdown (renderInline) with [Source: …] citation chips.
+// A citation that matches a known source becomes a clickable link with
+// the source URL; an unrecognized one stays informational via title=.
+function renderMessageBody(
+  text: string,
+  sources: Source[],
+  onOpenSources: () => void,
+): React.ReactNode {
+  const paragraphs = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  return (
+    <div className="flex flex-col gap-2">
+      {paragraphs.map((para, i) => (
+        <p key={i} className="whitespace-pre-wrap">
+          {renderCitations(para, sources, onOpenSources)}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function renderCitations(
+  text: string,
+  sources: Source[],
+  onOpenSources: () => void,
+): React.ReactNode {
   const re = /\[Source: ([^\]]+)\]/g;
-  const parts: React.ReactNode[] = [];
+  const out: React.ReactNode[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
-  let i = 0;
+  let key = 0;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    parts.push(
-      <sup
-        key={i++}
-        className="ml-0.5 rounded-sm border border-border bg-background px-1 font-mono text-[9px] text-muted-foreground"
-        title={m[1]}
-      >
-        {i}
+    if (m.index > last) {
+      out.push(
+        <span key={`t-${key}`}>{renderInline(text.slice(last, m.index))}</span>,
+      );
+    }
+    const label = m[1];
+    const matched = sources.find(
+      (s) => s.label.toLowerCase() === label.toLowerCase(),
+    );
+    const idx = matched ? sources.indexOf(matched) + 1 : key + 1;
+    out.push(
+      <sup key={`c-${key++}`} className="ml-0.5 inline-block align-super">
+        {matched ? (
+          <a
+            href={matched.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={label}
+            className="rounded-sm border border-border bg-background px-1 font-mono text-[9px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            {idx}
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenSources}
+            title={label}
+            className="rounded-sm border border-border bg-background px-1 font-mono text-[9px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            ?
+          </button>
+        )}
       </sup>,
     );
     last = m.index + m[0].length;
   }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
+  if (last < text.length) {
+    out.push(
+      <span key={`t-${key}`}>{renderInline(text.slice(last))}</span>,
+    );
+  }
+  return out;
 }

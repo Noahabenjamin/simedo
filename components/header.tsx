@@ -68,6 +68,14 @@ export function Header({ viewer }: Props) {
         </button>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
+          <button
+            type="button"
+            onClick={() => openPalette()}
+            aria-label="Open search"
+            className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
+          >
+            <Search className="size-4" />
+          </button>
           {viewer ? (
             <>
               <Link
