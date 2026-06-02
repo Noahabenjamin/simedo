@@ -30,6 +30,7 @@ export type Simulation = {
   pdbCode: string;
   pdbUrl: string;
   trajectoryUrl: string | null;
+  hasTrajectory: boolean;
   thumbnailUrl: string;
   author: SimulationAuthor;
   createdAt: string;

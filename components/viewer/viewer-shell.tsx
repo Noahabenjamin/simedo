@@ -1,34 +1,21 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { forwardRef, type ComponentProps } from "react";
-import type { MolecularViewer, MolecularViewerHandle } from "./molecular-viewer";
+import type { ComponentProps } from "react";
+import type { MolecularViewer } from "./molecular-viewer";
+import { ViewerSkeleton } from "./viewer-skeleton";
 
-// NGL pulls in `window` and WebGL at module init — so we dynamic-import the
-// viewer with ssr disabled. Refs are forwarded through so the AI sidebar can
-// drive the viewer imperatively.
+// NGL touches `window` and WebGL at module init, so the viewer is client-only.
+// Importing the default export sidesteps the named-export + ref-forwarding
+// edge case we hit before, where the viewer would never fully mount.
 
-const MolecularViewerLazy = dynamic(
-  () => import("./molecular-viewer").then((m) => m.MolecularViewer),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-card">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-5 animate-spin rounded-full border-2 border-foreground/15 border-t-primary" />
-          <div className="text-xs font-mono text-muted-foreground">
-            Loading viewer
-          </div>
-        </div>
-      </div>
-    ),
-  },
-);
+const MolecularViewerLazy = dynamic(() => import("./molecular-viewer"), {
+  ssr: false,
+  loading: () => <ViewerSkeleton />,
+});
 
 type Props = ComponentProps<typeof MolecularViewer>;
 
-export const ViewerShell = forwardRef<MolecularViewerHandle, Props>(
-  function ViewerShell(props, ref) {
-    return <MolecularViewerLazy ref={ref} {...props} />;
-  },
-);
+export function ViewerShell(props: Props) {
+  return <MolecularViewerLazy {...props} />;
+}

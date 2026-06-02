@@ -1,7 +1,6 @@
 import type { Simulation, SimulationAuthor } from "@/types";
 
-const thumb = (pdb: string) =>
-  `https://placehold.co/800x450/0e0e0e/5DCAA5?text=${pdb}&font=roboto`;
+const thumb = (pdb: string) => `/api/thumbnail/${pdb.toLowerCase()}`;
 
 const avatar = (seed: string) =>
   `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&backgroundColor=0F6E56`;
@@ -33,6 +32,7 @@ export const mockSimulations: Simulation[] = [
       "Human hemoglobin in the oxygen-bound R state. The classic structure that captures cooperative binding mid-cycle.",
     pdbUrl: pdbUrl("1HHO"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1HHO"),
     author: AUTHORS.jin,
     createdAt: "2026-05-18T09:12:00Z",
@@ -54,6 +54,7 @@ export const mockSimulations: Simulation[] = [
       "Human deoxyhemoglobin in the tense T state. Pairs naturally with 1HHO to study the allosteric switch behind cooperative oxygen binding.",
     pdbUrl: pdbUrl("4HHB"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("4HHB"),
     author: AUTHORS.priya,
     createdAt: "2026-04-28T18:55:00Z",
@@ -75,6 +76,7 @@ export const mockSimulations: Simulation[] = [
       "The first protein structure ever solved by X-ray crystallography (Kendrew, 1958). Still a benchmark for oxygen-storage dynamics.",
     pdbUrl: pdbUrl("1MBN"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1MBN"),
     author: AUTHORS.henrik,
     createdAt: "2026-05-02T11:20:00Z",
@@ -98,6 +100,7 @@ export const mockSimulations: Simulation[] = [
       "β2 adrenergic receptor captured coupled to its heterotrimeric Gs partner. A landmark GPCR signaling complex.",
     pdbUrl: pdbUrl("3SN6"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("3SN6"),
     author: AUTHORS.sofia,
     createdAt: "2026-05-12T15:40:00Z",
@@ -119,6 +122,7 @@ export const mockSimulations: Simulation[] = [
       "Bovine rhodopsin in its dark resting state. A cornerstone for visual-pigment activation dynamics.",
     pdbUrl: pdbUrl("6CMO"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("6CMO"),
     author: AUTHORS.yuki,
     createdAt: "2026-04-22T19:10:00Z",
@@ -142,6 +146,7 @@ export const mockSimulations: Simulation[] = [
       "Cas9 bound to a single-guide RNA and target DNA. The complete editing complex in a cleavage-ready geometry.",
     pdbUrl: pdbUrl("4OO8"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("4OO8"),
     author: AUTHORS.marcus,
     createdAt: "2026-05-15T08:30:00Z",
@@ -165,6 +170,7 @@ export const mockSimulations: Simulation[] = [
       "One of the few full-length immunoglobulin structures available — hinges, Fab arms, and Fc all resolved.",
     pdbUrl: pdbUrl("1IGT"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1IGT"),
     author: AUTHORS.elena,
     createdAt: "2026-04-09T13:45:00Z",
@@ -188,6 +194,7 @@ export const mockSimulations: Simulation[] = [
       "PKA catalytic subunit bound to ATP and substrate peptide — the textbook reference structure for protein kinases.",
     pdbUrl: pdbUrl("1ATP"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1ATP"),
     author: AUTHORS.daniel,
     createdAt: "2026-03-30T10:15:00Z",
@@ -209,6 +216,7 @@ export const mockSimulations: Simulation[] = [
       "Src tyrosine kinase in its closed, autoinhibited conformation — the regulatory baseline that activation has to overcome.",
     pdbUrl: pdbUrl("2SRC"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("2SRC"),
     author: AUTHORS.anya,
     createdAt: "2026-04-04T17:25:00Z",
@@ -232,6 +240,7 @@ export const mockSimulations: Simulation[] = [
       "Classic 129-residue enzyme that cleaves bacterial cell walls. A long-standing benchmark for force-field validation and protein dynamics.",
     pdbUrl: pdbUrl("1AKI"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1AKI"),
     author: AUTHORS.mira,
     createdAt: "2026-05-20T14:30:00Z",
@@ -255,6 +264,7 @@ export const mockSimulations: Simulation[] = [
       "Small, exceptionally stable Kunitz-domain inhibitor of serine proteases — one of the most thoroughly studied proteins in biophysics.",
     pdbUrl: pdbUrl("4PTI"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("4PTI"),
     author: AUTHORS.lukas,
     createdAt: "2026-02-26T09:00:00Z",
@@ -278,6 +288,7 @@ export const mockSimulations: Simulation[] = [
       "Twelve base pairs of canonical B-form DNA — the dodecamer that defined our picture of double-helix geometry.",
     pdbUrl: pdbUrl("1BNA"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1BNA"),
     author: AUTHORS.henrik,
     createdAt: "2026-05-10T11:05:00Z",
@@ -300,6 +311,7 @@ export const mockSimulations: Simulation[] = [
       "A tetrameric water channel embedded in a plant plasma membrane. Each monomer gates water flow through a narrow selectivity filter.",
     pdbUrl: pdbUrl("2NWL"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("2NWL"),
     author: AUTHORS.aisha,
     createdAt: "2026-03-12T16:00:00Z",
@@ -323,6 +335,7 @@ export const mockSimulations: Simulation[] = [
       "Closed-trimer prefusion conformation of the spike glycoprotein. The starting state for receptor-binding-domain opening dynamics.",
     pdbUrl: pdbUrl("6VXX"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("6VXX"),
     author: AUTHORS.sofia,
     createdAt: "2026-05-15T22:40:00Z",
@@ -337,16 +350,17 @@ export const mockSimulations: Simulation[] = [
     resolution: 2.8,
   },
 
-  // Ubiquitin
+  // Ubiquitin — NMR ensemble for real model-to-model motion
   {
     id: "ubiquitin-1ubq",
-    pdbCode: "1UBQ",
-    title: "Ubiquitin",
+    pdbCode: "1D3Z",
+    title: "Ubiquitin NMR ensemble",
     description:
-      "Seventy-six residues of fold-and-signaling perfection. The reference β-grasp fold and a staple of folding studies.",
-    pdbUrl: pdbUrl("1UBQ"),
+      "Ten NMR-derived conformers of human ubiquitin. Animating between models reveals real backbone-loop flexibility on the 76-residue β-grasp fold.",
+    pdbUrl: pdbUrl("1D3Z"),
     trajectoryUrl: null,
-    thumbnailUrl: thumb("1UBQ"),
+    hasTrajectory: true,
+    thumbnailUrl: thumb("1D3Z"),
     author: AUTHORS.lukas,
     createdAt: "2026-02-08T16:45:00Z",
     viewCount: 0,
@@ -357,7 +371,6 @@ export const mockSimulations: Simulation[] = [
     proteinFamily: "Ubiquitin",
     organism: "Homo sapiens",
     experimentType: "folding",
-    resolution: 1.8,
   },
 
   // Crambin
@@ -369,6 +382,7 @@ export const mockSimulations: Simulation[] = [
       "A 46-residue plant protein resolved at sub-ångström resolution. A tiny but exceptionally well-resolved benchmark for force fields.",
     pdbUrl: pdbUrl("1CRN"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1CRN"),
     author: AUTHORS.daniel,
     createdAt: "2026-04-15T13:20:00Z",
@@ -391,6 +405,7 @@ export const mockSimulations: Simulation[] = [
       "147 base pairs of DNA wrapped around a histone octamer (two copies of H2A, H2B, H3, H4). The fundamental unit of chromatin.",
     pdbUrl: pdbUrl("1KX5"),
     trajectoryUrl: null,
+    hasTrajectory: false,
     thumbnailUrl: thumb("1KX5"),
     author: AUTHORS.elena,
     createdAt: "2026-03-05T10:50:00Z",

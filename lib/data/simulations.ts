@@ -25,6 +25,7 @@ type DbSimulationRow = {
   pdb_code: string | null;
   pdb_url: string;
   trajectory_url: string | null;
+  has_trajectory: boolean | null;
   thumbnail_url: string | null;
   category: SimulationCategory;
   protein_family: string | null;
@@ -51,9 +52,11 @@ function mapRow(row: DbSimulationRow): Simulation {
     pdbCode: row.pdb_code ?? "",
     pdbUrl: row.pdb_url,
     trajectoryUrl: row.trajectory_url,
+    hasTrajectory: row.has_trajectory ?? false,
     thumbnailUrl:
-      row.thumbnail_url ??
-      `https://placehold.co/800x450/0e0e0e/5DCAA5?text=${row.pdb_code ?? ""}&font=roboto`,
+      row.thumbnail_url && !row.thumbnail_url.includes("placehold.co")
+        ? row.thumbnail_url
+        : `/api/thumbnail/${(row.pdb_code ?? "").toLowerCase()}`,
     category: row.category,
     proteinFamily: row.protein_family ?? undefined,
     organism: row.organism ?? undefined,
@@ -81,8 +84,9 @@ function mapRow(row: DbSimulationRow): Simulation {
 
 const ROW_SELECT = `
   id, user_id, title, description, pdb_code, pdb_url, trajectory_url,
-  thumbnail_url, category, protein_family, organism, experiment_type,
-  resolution, view_count, like_count, comment_count, created_at,
+  has_trajectory, thumbnail_url, category, protein_family, organism,
+  experiment_type, resolution, view_count, like_count, comment_count,
+  created_at,
   users:user_id (username, display_name, avatar_url),
   simulation_tags ( tags ( name ) )
 `;

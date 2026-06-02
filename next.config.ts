@@ -12,9 +12,9 @@ const nextConfig: NextConfig = {
   // Allow next/image to optimize thumbnails and avatars from these hosts.
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "placehold.co" },
       { protocol: "https", hostname: "api.dicebear.com" },
       { protocol: "https", hostname: "files.rcsb.org" },
+      { protocol: "https", hostname: "cdn.rcsb.org" },
     ],
   },
 };

@@ -228,11 +228,11 @@ insert into public.simulations (
     0, 0, 0, '2026-05-15T22:40:00Z', '2026-05-15T22:40:00Z'),
 
   ('11111111-0000-0000-0000-00000000000f', '00000000-0000-0000-0000-000000000008',
-    'Ubiquitin',
-    'Seventy-six residues of fold-and-signaling perfection. The reference β-grasp fold and a staple of folding studies.',
-    '1UBQ', 'https://files.rcsb.org/download/1UBQ.pdb',
-    'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1UBQ&font=roboto',
-    'protein', 'Ubiquitin', 'Homo sapiens', 'folding', 1.8, 'cc-by', 'public',
+    'Ubiquitin NMR ensemble',
+    'Ten NMR-derived conformers of human ubiquitin. Animating between models reveals real backbone-loop flexibility on the 76-residue β-grasp fold.',
+    '1D3Z', 'https://files.rcsb.org/download/1D3Z.pdb',
+    'https://placehold.co/800x450/0e0e0e/5DCAA5?text=1D3Z&font=roboto',
+    'protein', 'Ubiquitin', 'Homo sapiens', 'folding', null, 'cc-by', 'public',
     0, 0, 0, '2026-02-08T16:45:00Z', '2026-02-08T16:45:00Z'),
 
   ('11111111-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000006',
@@ -251,6 +251,13 @@ insert into public.simulations (
     'protein', 'Histones', 'Xenopus laevis', 'equilibrium', 1.9, 'cc-by', 'public',
     0, 0, 0, '2026-03-05T10:50:00Z', '2026-03-05T10:50:00Z')
 on conflict (id) do nothing;
+
+-- Flag the sims that have real motion to play back.
+-- 1D3Z is an NMR ensemble (10 models) so the viewer can animate model-to-model.
+-- Every other seed sim is structure-only.
+update public.simulations
+  set has_trajectory = true
+  where pdb_code = '1D3Z';
 
 -- Sprinkle some likes and tags so the platform doesn't feel cold.
 insert into public.tags (name) values
