@@ -1,19 +1,24 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Check, FileUp, Globe, Loader2, Lock, Tag, Upload, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Check,
+  FileUp,
+  Globe,
+  Loader2,
+  Lock,
+  Tag,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-
-// UI shell for the upload flow. Validates client-side, builds a preview
-// of what would be submitted, and shows a "preview only" toast on submit
-// because the backend isn't wired up yet.
-//
-// Replace the `onSubmit` handler with a server action once the Supabase
-// storage bucket and parsing pipeline are in place.
+import { getBrowserSupabase } from "@/lib/supabase/browser";
+import { createSimulationFromUpload } from "@/lib/upload-actions";
 
 const CATEGORIES = [
   { id: "protein", label: "Protein dynamics" },
@@ -34,6 +39,11 @@ const LICENSES = [
 const TRAJECTORY_EXTS = [".xtc", ".dcd", ".trr", ".nc", ".lh5"];
 const TOPOLOGY_EXTS = [".pdb", ".gro", ".psf", ".prmtop", ".top", ".cif"];
 
+const TRAJECTORY_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
+const TOPOLOGY_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+
+const DRAFT_KEY = "helix-upload-draft-v1";
+
 type Category = (typeof CATEGORIES)[number]["id"];
 type License = (typeof LICENSES)[number]["id"];
 type Visibility = "public" | "unlisted" | "private";
@@ -46,90 +56,277 @@ function fileExt(name: string): string {
 function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
+type Draft = {
+  name: string;
+  description: string;
+  category: Category;
+  tags: string;
+  license: License;
+  visibility: Visibility;
+  pdbCode: string;
+};
+
+const EMPTY_DRAFT: Draft = {
+  name: "",
+  description: "",
+  category: "protein",
+  tags: "",
+  license: "cc-by-4",
+  visibility: "public",
+  pdbCode: "",
+};
+
 export function UploadForm() {
+  const router = useRouter();
   const [trajectoryFile, setTrajectoryFile] = useState<File | null>(null);
   const [topologyFile, setTopologyFile] = useState<File | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<Category>("protein");
-  const [tags, setTags] = useState("");
-  const [license, setLicense] = useState<License>("cc-by-4");
-  const [visibility, setVisibility] = useState<Visibility>("public");
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState<{ uploaded: number; total: number } | null>(
+    null,
+  );
+  const hydratedRef = useRef(false);
+
+  // Hydrate from localStorage on mount.
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Draft>;
+        setDraft((d) => ({ ...d, ...parsed }));
+      }
+    } catch {
+      /* draft corrupt — ignore */
+    }
+  }, []);
+
+  // Persist draft on every change (text-only; files aren't serializable).
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      /* quota / private mode — best effort */
+    }
+  }, [draft]);
+
+  const set = useCallback(
+    <K extends keyof Draft>(key: K, value: Draft[K]) =>
+      setDraft((d) => ({ ...d, [key]: value })),
+    [],
+  );
 
   const tagList = useMemo(
     () =>
-      tags
+      draft.tags
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-    [tags],
+    [draft.tags],
   );
 
-  const trajectoryValid = !!trajectoryFile && TRAJECTORY_EXTS.includes(fileExt(trajectoryFile.name));
-  const topologyValid = !topologyFile || TOPOLOGY_EXTS.includes(fileExt(topologyFile.name));
-  const formValid = trajectoryValid && topologyValid && name.trim().length >= 3;
+  const trajectoryValid =
+    !!trajectoryFile &&
+    TRAJECTORY_EXTS.includes(fileExt(trajectoryFile.name)) &&
+    trajectoryFile.size <= TRAJECTORY_MAX_BYTES;
+  const topologyValid =
+    !topologyFile ||
+    (TOPOLOGY_EXTS.includes(fileExt(topologyFile.name)) &&
+      topologyFile.size <= TOPOLOGY_MAX_BYTES);
+  const hasStructure =
+    /^[a-z0-9]{4}$/i.test(draft.pdbCode.trim()) || !!topologyFile;
+  const formValid =
+    hasStructure && draft.name.trim().length >= 3 && topologyValid;
+
+  const trajectoryWarn = (() => {
+    if (!trajectoryFile) return null;
+    if (!TRAJECTORY_EXTS.includes(fileExt(trajectoryFile.name)))
+      return `Unsupported extension ${fileExt(trajectoryFile.name)}`;
+    if (trajectoryFile.size > TRAJECTORY_MAX_BYTES)
+      return `${humanSize(trajectoryFile.size)} exceeds the 100 MB cap`;
+    return null;
+  })();
+
+  const topologyWarn = (() => {
+    if (!topologyFile) return null;
+    if (!TOPOLOGY_EXTS.includes(fileExt(topologyFile.name)))
+      return `Unsupported extension ${fileExt(topologyFile.name)}`;
+    if (topologyFile.size > TOPOLOGY_MAX_BYTES)
+      return `${humanSize(topologyFile.size)} exceeds the 25 MB cap`;
+    return null;
+  })();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!formValid || submitting) return;
       setSubmitting(true);
-      // Simulate a network round-trip so the loading state is visible.
-      await new Promise((r) => setTimeout(r, 700));
-      setSubmitting(false);
-      toast.info("Preview only — backend not connected yet", {
-        description:
-          "We validated your submission but did not store any files. You'll receive an email when public uploads open.",
-      });
+      setProgress(null);
+
+      const sb = getBrowserSupabase();
+      if (!sb) {
+        toast.error("Upload backend not configured", {
+          description:
+            "Set NEXT_PUBLIC_SUPABASE_URL and the matching anon key, then run the storage-buckets migration.",
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user) {
+        toast.error("Sign in to upload");
+        setSubmitting(false);
+        router.push("/login?redirect=/upload");
+        return;
+      }
+
+      try {
+        let trajectoryStoragePath: string | null = null;
+        let topologyStoragePath: string | null = null;
+
+        if (trajectoryFile) {
+          setProgress({ uploaded: 0, total: trajectoryFile.size });
+          const name = `${Date.now()}-${sanitizeFileName(trajectoryFile.name)}`;
+          const path = `${user.id}/${name}`;
+          const { error } = await sb.storage
+            .from("helix-trajectories")
+            .upload(path, trajectoryFile, {
+              contentType: trajectoryFile.type || "application/octet-stream",
+              upsert: false,
+            });
+          if (error) throw error;
+          trajectoryStoragePath = path;
+          setProgress({
+            uploaded: trajectoryFile.size,
+            total: trajectoryFile.size,
+          });
+        }
+
+        if (topologyFile) {
+          const name = `${Date.now()}-${sanitizeFileName(topologyFile.name)}`;
+          const path = `${user.id}/${name}`;
+          const { error } = await sb.storage
+            .from("helix-topologies")
+            .upload(path, topologyFile, {
+              contentType: topologyFile.type || "application/octet-stream",
+              upsert: false,
+            });
+          if (error) throw error;
+          topologyStoragePath = path;
+        }
+
+        const result = await createSimulationFromUpload({
+          title: draft.name.trim(),
+          description: draft.description.trim(),
+          category: draft.category,
+          tags: tagList,
+          license: draft.license,
+          visibility: draft.visibility,
+          pdbCode: draft.pdbCode.trim() || null,
+          trajectoryStoragePath,
+          trajectorySizeBytes: trajectoryFile?.size ?? null,
+          topologyStoragePath,
+        });
+
+        if ("error" in result) {
+          toast.error("Couldn't create the simulation", {
+            description: result.error,
+          });
+          return;
+        }
+
+        // Clear the draft and route to the new simulation page.
+        try {
+          localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          /* ignore */
+        }
+        toast.success("Simulation uploaded");
+        router.push(`/simulation/${result.id}`);
+      } catch (err) {
+        toast.error("Upload failed", {
+          description: err instanceof Error ? err.message : "Unknown error",
+        });
+      } finally {
+        setSubmitting(false);
+        setProgress(null);
+      }
     },
-    [formValid, submitting],
+    [
+      formValid,
+      submitting,
+      trajectoryFile,
+      topologyFile,
+      draft,
+      tagList,
+      router,
+    ],
   );
 
   return (
     <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
+      {/* PDB code or topology */}
+      <Section
+        title="Structure"
+        hint="Reference structure for the viewer. PDB code or a topology file."
+        valid={hasStructure}
+      >
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">PDB code</span>
+            <Input
+              value={draft.pdbCode}
+              onChange={(e) => set("pdbCode", e.target.value.trim())}
+              placeholder="e.g. 1HHO"
+              maxLength={4}
+              className="font-mono uppercase"
+            />
+            <span className="text-[10px] text-muted-foreground">
+              We&apos;ll fetch the PDB from RCSB automatically.
+            </span>
+          </label>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            <span>or attach a topology file</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <FileDrop
+            file={topologyFile}
+            onFile={setTopologyFile}
+            accept={TOPOLOGY_EXTS}
+            label="Drag a topology file here"
+            sublabel={TOPOLOGY_EXTS.join(" · ")}
+            optional
+            warn={topologyWarn}
+          />
+        </div>
+      </Section>
+
       {/* Trajectory drop zone */}
       <Section
         title="Trajectory"
-        hint="The motion data. Required."
-        valid={trajectoryValid}
-        warn={
-          trajectoryFile && !trajectoryValid
-            ? `Unsupported extension ${fileExt(trajectoryFile.name)}`
-            : null
-        }
+        hint="The motion data. Optional — structure-only uploads are fine."
+        valid={!trajectoryFile || trajectoryValid}
+        warn={trajectoryWarn}
       >
         <FileDrop
           file={trajectoryFile}
           onFile={setTrajectoryFile}
           accept={TRAJECTORY_EXTS}
           label="Drag a trajectory file here"
-          sublabel={TRAJECTORY_EXTS.join(" · ")}
-        />
-      </Section>
-
-      {/* Topology drop zone */}
-      <Section
-        title="Topology"
-        hint="Atom connectivity and metadata. Optional but recommended."
-        valid={topologyValid}
-        warn={
-          topologyFile && !topologyValid
-            ? `Unsupported extension ${fileExt(topologyFile.name)}`
-            : null
-        }
-      >
-        <FileDrop
-          file={topologyFile}
-          onFile={setTopologyFile}
-          accept={TOPOLOGY_EXTS}
-          label="Drag a topology file here"
-          sublabel={TOPOLOGY_EXTS.join(" · ")}
+          sublabel={`${TRAJECTORY_EXTS.join(" · ")} · up to 100 MB`}
           optional
+          warn={trajectoryWarn}
         />
       </Section>
 
@@ -137,24 +334,20 @@ export function UploadForm() {
       <Section title="Details" hint="What you're sharing.">
         <div className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">
-              Name
-            </span>
+            <span className="text-xs text-muted-foreground">Name</span>
             <Input
               required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={draft.name}
+              onChange={(e) => set("name", e.target.value)}
               placeholder="e.g. Spike protein RBD with ACE2"
               maxLength={120}
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">
-              Description
-            </span>
+            <span className="text-xs text-muted-foreground">Description</span>
             <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={draft.description}
+              onChange={(e) => set("description", e.target.value)}
               placeholder="Force field, integrator, conditions, simulation length, citations…"
               rows={5}
             />
@@ -169,10 +362,10 @@ export function UploadForm() {
             <button
               type="button"
               key={c.id}
-              onClick={() => setCategory(c.id)}
+              onClick={() => set("category", c.id)}
               className={cn(
                 "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                category === c.id
+                draft.category === c.id
                   ? "border-primary bg-primary/10 text-foreground"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
@@ -186,8 +379,8 @@ export function UploadForm() {
       {/* Tags */}
       <Section title="Tags" hint="Comma separated.">
         <Input
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
+          value={draft.tags}
+          onChange={(e) => set("tags", e.target.value)}
           placeholder="charmm36, gromacs, 500ns"
         />
         {tagList.length > 0 && (
@@ -213,7 +406,7 @@ export function UploadForm() {
               key={l.id}
               className={cn(
                 "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                license === l.id
+                draft.license === l.id
                   ? "border-primary bg-primary/5"
                   : "border-border hover:bg-muted/50",
               )}
@@ -222,8 +415,8 @@ export function UploadForm() {
                 type="radio"
                 name="license"
                 value={l.id}
-                checked={license === l.id}
-                onChange={() => setLicense(l.id)}
+                checked={draft.license === l.id}
+                onChange={() => set("license", l.id)}
                 className="mt-1 size-3.5 accent-primary"
               />
               <div className="flex flex-col">
@@ -244,54 +437,85 @@ export function UploadForm() {
             icon={<Globe className="size-4" />}
             label="Public"
             hint="Anyone can find and view"
-            selected={visibility === "public"}
-            onSelect={() => setVisibility("public")}
+            selected={draft.visibility === "public"}
+            onSelect={() => set("visibility", "public")}
           />
           <VisibilityCard
             icon={<FileUp className="size-4" />}
             label="Unlisted"
             hint="Only people with the link"
-            selected={visibility === "unlisted"}
-            onSelect={() => setVisibility("unlisted")}
+            selected={draft.visibility === "unlisted"}
+            onSelect={() => set("visibility", "unlisted")}
           />
           <VisibilityCard
             icon={<Lock className="size-4" />}
             label="Private"
             hint="Only you and collaborators"
-            selected={visibility === "private"}
-            onSelect={() => setVisibility("private")}
+            selected={draft.visibility === "private"}
+            onSelect={() => set("visibility", "private")}
           />
         </div>
       </Section>
 
-      {/* Submit */}
-      <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          {formValid ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Check className="size-3.5 text-emerald-500" />
-              Ready to submit
-            </span>
-          ) : (
-            "Add a trajectory file and a name to continue."
-          )}
-        </p>
-        <Button type="submit" disabled={!formValid || submitting} size="lg">
-          {submitting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Preparing
-            </>
-          ) : (
-            <>
-              <Upload className="size-4" />
-              Submit for review
-            </>
-          )}
-        </Button>
+      {/* Submit + progress */}
+      <div className="flex flex-col gap-3 border-t border-border pt-6">
+        {progress && (
+          <div className="flex flex-col gap-1">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Uploading trajectory</span>
+              <span className="font-mono">
+                {humanSize(progress.uploaded)} / {humanSize(progress.total)}
+              </span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-foreground transition-all duration-200"
+                style={{
+                  width:
+                    progress.total === 0
+                      ? "100%"
+                      : `${Math.min(100, (progress.uploaded / progress.total) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            {formValid ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Check className="size-3.5 text-emerald-500" />
+                Ready to upload
+              </span>
+            ) : (
+              "Add a PDB code or topology, plus a name (3+ characters)."
+            )}
+          </p>
+          <Button type="submit" disabled={!formValid || submitting} size="lg">
+            {submitting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Uploading
+              </>
+            ) : (
+              <>
+                <Upload className="size-4" />
+                Upload
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );
+}
+
+function sanitizeFileName(name: string): string {
+  return name
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .slice(0, 200);
 }
 
 // ---------- Section wrapper -----------------------------------------------
@@ -318,14 +542,10 @@ function Section({
             <Check className="ml-2 inline-block size-3.5 -translate-y-px text-emerald-500" />
           )}
         </h2>
-        {hint && (
-          <span className="text-xs text-muted-foreground">{hint}</span>
-        )}
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       {children}
-      {warn && (
-        <p className="text-xs text-destructive">{warn}</p>
-      )}
+      {warn && <p className="text-xs text-destructive">{warn}</p>}
     </section>
   );
 }
@@ -339,6 +559,7 @@ function FileDrop({
   label,
   sublabel,
   optional,
+  warn,
 }: {
   file: File | null;
   onFile: (f: File | null) => void;
@@ -346,6 +567,7 @@ function FileDrop({
   label: string;
   sublabel: string;
   optional?: boolean;
+  warn?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [hover, setHover] = useState(false);
@@ -371,7 +593,9 @@ function FileDrop({
         "relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center transition-colors",
         hover
           ? "border-primary bg-primary/5"
-          : "border-border bg-card hover:bg-muted/30",
+          : warn
+            ? "border-destructive/50 bg-destructive/5"
+            : "border-border bg-card hover:bg-muted/30",
       )}
     >
       <input

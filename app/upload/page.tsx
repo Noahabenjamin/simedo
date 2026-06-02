@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { UploadForm } from "@/components/upload/upload-form";
+import { isDbAvailable } from "@/lib/data/db-available";
 
 export const metadata = {
   title: "Upload simulation",
@@ -29,19 +30,19 @@ export default function UploadPage() {
         </p>
       </header>
 
-      <div className="mb-8 flex items-start gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 px-4 py-3 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-        <Info className="mt-0.5 size-4 shrink-0" />
-        <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
-          <span className="font-medium">Preview only</span>
-          <span className="text-amber-900/80 dark:text-amber-200/80">
-            The upload backend is not connected yet. The form below validates
-            and previews your submission, but files are not stored. Public
-            uploads open during the closed beta.
-          </span>
+      {isDbAvailable() ? (
+        <UploadForm />
+      ) : (
+        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center">
+          <p className="text-sm font-medium text-foreground">
+            Upload backend is not configured
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Set Supabase URL + anon key and run the storage-buckets migration
+            to enable uploads.
+          </p>
         </div>
-      </div>
-
-      <UploadForm />
+      )}
     </div>
   );
 }
