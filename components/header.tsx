@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+function openPalette(initialQuery?: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("helix:open-palette", {
+      detail: initialQuery ? { initialQuery } : {},
+    }),
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -36,15 +44,18 @@ export function Header() {
           </Link>
         </div>
 
-        <div className="relative hidden flex-1 max-w-md mx-auto md:flex">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search simulations"
-            className="h-10 rounded-full pl-11 pr-4 text-sm"
-            aria-label="Search simulations"
-          />
-        </div>
+        <button
+          type="button"
+          onClick={() => openPalette()}
+          className="relative hidden h-10 max-w-md flex-1 items-center gap-3 rounded-full border border-border bg-background pl-4 pr-3 text-sm text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground md:flex"
+          aria-label="Open search"
+        >
+          <Search className="size-4" />
+          <span className="flex-1 text-left">Search simulations, people</span>
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+            ⌘K
+          </kbd>
+        </button>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
           <Link

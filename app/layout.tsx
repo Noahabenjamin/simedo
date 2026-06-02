@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { WelcomeTour } from "@/components/onboarding/welcome-tour";
 import { AnalyticsScript } from "@/components/analytics-script";
+import { CommandPalette } from "@/components/search/command-palette";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -69,6 +70,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
           <WelcomeTour />
+          <CommandPalette />
         </ThemeProvider>
         <AnalyticsScript />
       </body>
