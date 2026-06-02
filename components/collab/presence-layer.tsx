@@ -164,8 +164,12 @@ export function PresenceLayer({ simulationId, viewerRef, ownerId }: Props) {
   }, [supabase, myUserId, simulationId, ownerId, viewerRef]);
 
   // Keep a ref of isPresenter so the broadcast handlers see the current value.
+  // The "ref-as-latest-value" pattern intentionally mutates a ref during an
+  // effect — the lint flags it, but it's the canonical way to read fresh
+  // state from a long-lived subscription handler.
   const isPresenterRef = useRef(isPresenter);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     isPresenterRef.current = isPresenter;
   }, [isPresenter]);
 

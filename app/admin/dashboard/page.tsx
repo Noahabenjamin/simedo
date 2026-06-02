@@ -34,6 +34,15 @@ export default async function AdminDashboard() {
     notFound();
   }
 
+  // Compute the time windows up front. This is a server component that
+  // renders once per request, so the "no impure calls during render"
+  // rule doesn't actually buy us anything here.
+  /* eslint-disable react-hooks/purity */
+  const now = Date.now();
+  const sevenDaysAgo = new Date(now - 7 * 24 * 3600 * 1000).toISOString();
+  const thirtyDaysAgo = new Date(now - 30 * 24 * 3600 * 1000).toISOString();
+  /* eslint-enable react-hooks/purity */
+
   const [{ count: totalUsers }, { count: totalSims }, { count: weeklyUsers }] =
     await Promise.all([
       supabase.from("users").select("*", { count: "exact", head: true }),
@@ -44,10 +53,7 @@ export default async function AdminDashboard() {
       supabase
         .from("users")
         .select("*", { count: "exact", head: true })
-        .gte(
-          "created_at",
-          new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
-        ),
+        .gte("created_at", sevenDaysAgo),
     ]);
 
   const { data: topSims } = await supabase
@@ -60,10 +66,7 @@ export default async function AdminDashboard() {
   const { data: aiUsage } = await supabase
     .from("ai_usage")
     .select("model, input_tokens, output_tokens, created_at")
-    .gte(
-      "created_at",
-      new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
-    );
+    .gte("created_at", thirtyDaysAgo);
 
   const tokenTotals = (aiUsage ?? []).reduce(
     (acc, r) => {

@@ -118,6 +118,6 @@ export async function updateProfile(formData: FormData): Promise<void> {
     })
     .eq("id", user!.id);
 
-  if (error) errorRedirect("/onboarding", error.message);
-  redirect("/");
+  if (error) errorRedirect("/settings", error.message);
+  redirect("/settings?saved=1");
 }

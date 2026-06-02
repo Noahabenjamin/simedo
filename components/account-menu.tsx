@@ -92,7 +92,7 @@ export function AccountMenu({ viewer }: Props) {
             View profile
           </Link>
           <Link
-            href="/onboarding"
+            href="/settings"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
           >

@@ -13,7 +13,11 @@ export function BrowseSearchInput() {
   const [value, setValue] = useState(urlQ);
 
   // Re-sync if the URL is changed by another component (e.g. clear all).
+  // The lint rule rightly warns about setState-in-effect, but here the
+  // input value IS derived from external state (the URL) and the user can
+  // also type into it, so a controlled-mirror pattern is the right shape.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setValue(urlQ);
   }, [urlQ]);
 

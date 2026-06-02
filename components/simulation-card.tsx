@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Eye, Heart, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCount, initials } from "@/lib/format";
@@ -22,13 +23,15 @@ export function SimulationCard({ simulation }: Props) {
 
   return (
     <article className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-foreground/30">
-      <div className="aspect-video overflow-hidden rounded-xl border border-border bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted">
+        <Image
           src={thumbnailUrl}
           alt=""
+          fill
+          sizes="(min-width: 1280px) 28vw, (min-width: 768px) 45vw, 92vw"
           loading="lazy"
-          className="h-full w-full object-cover transition-opacity group-hover:opacity-95"
+          unoptimized={thumbnailUrl.startsWith("/api/thumbnail/")}
+          className="object-cover transition-opacity group-hover:opacity-95"
         />
       </div>
 
