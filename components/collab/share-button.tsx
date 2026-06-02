@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Code, Copy, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { track } from "@/lib/analytics";
 
@@ -26,17 +27,27 @@ export function ShareButton({ simulationId }: Props) {
   }/embed/${simulationId}" width="640" height="480" allow="fullscreen" style="border:1px solid #EAEAEA;border-radius:12px"></iframe>`;
 
   async function copyLink() {
-    await navigator.clipboard.writeText(url);
-    setCopiedLink(true);
-    track("simulation_shared", { simulationId });
-    setTimeout(() => setCopiedLink(false), 1500);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      toast.success("Link copied", { description: url });
+      track("simulation_shared", { simulationId });
+      setTimeout(() => setCopiedLink(false), 1500);
+    } catch {
+      toast.error("Couldn't copy — paste from the field above instead.");
+    }
   }
 
   async function copyEmbed() {
-    await navigator.clipboard.writeText(embedCode);
-    setCopiedEmbed(true);
-    track("embed_code_copied", { simulationId });
-    setTimeout(() => setCopiedEmbed(false), 1500);
+    try {
+      await navigator.clipboard.writeText(embedCode);
+      setCopiedEmbed(true);
+      toast.success("Embed code copied");
+      track("embed_code_copied", { simulationId });
+      setTimeout(() => setCopiedEmbed(false), 1500);
+    } catch {
+      toast.error("Couldn't copy — paste from the field above instead.");
+    }
   }
 
   return (

@@ -8,7 +8,10 @@ import { CardGridSkeleton } from "@/components/skeletons";
 import { TrendingRow } from "@/components/trending-row";
 import { CategoryGrid } from "@/components/category-grid";
 import { parseFilters, hasActiveFilters } from "@/lib/browse-filters";
-import { listSimulations } from "@/lib/data/simulations";
+import {
+  listSimulations,
+  listTrendingSimulations,
+} from "@/lib/data/simulations";
 import { mockSimulations } from "@/lib/mock-data";
 import { isDbAvailable } from "@/lib/data/db-available";
 
@@ -26,16 +29,18 @@ export default async function BrowsePage({ searchParams }: Props) {
     ? listSimulations().then((s) => s.length)
     : Promise.resolve(mockSimulations.length);
 
-  const [filtered, total] = await Promise.all([
+  const [filtered, total, trending] = await Promise.all([
     listSimulations({ filters }),
     totalPromise,
+    listTrendingSimulations(7, 6),
   ]);
 
   // Only show the curated discovery rows when the user hasn't already
   // applied filters — otherwise they'd push the actual filtered results
-  // way down the page.
+  // way down the page. Trending is hidden if there are no recent views,
+  // so the row doesn't fall back to the same set of sims as below.
   const showDiscovery = !hasActiveFilters(filters);
-  const trending = mockSimulations.slice(0, 6);
+  const showTrending = showDiscovery && trending.length >= 3;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
@@ -50,7 +55,7 @@ export default async function BrowsePage({ searchParams }: Props) {
 
       {showDiscovery && (
         <div className="mb-16 flex flex-col gap-16 lg:mb-24 lg:gap-24">
-          <TrendingRow simulations={trending} />
+          {showTrending && <TrendingRow simulations={trending} />}
           <CategoryGrid />
         </div>
       )}

@@ -144,9 +144,9 @@ export function applyFilters(
     result = result.filter((s) => f.experiments.includes(s.experimentType));
   }
   if (f.trajectory === "yes") {
-    result = result.filter((s) => s.trajectoryUrl != null);
+    result = result.filter((s) => s.hasTrajectory);
   } else if (f.trajectory === "no") {
-    result = result.filter((s) => s.trajectoryUrl == null);
+    result = result.filter((s) => !s.hasTrajectory);
   }
 
   return applySort(result, f.sort);

@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Eye, Heart, MessageCircle } from "lucide-react";
 import { SimulationWorkspace } from "@/components/simulation-workspace";
 import { RelatedSimulations } from "@/components/related-simulations";
-import { ShareButton } from "@/components/collab/share-button";
 import { SimulationJsonLd } from "@/components/sim/json-ld";
 import { CommentSection } from "@/components/comments/comment-section";
+import { LikeButton } from "@/components/sim/like-button";
 import type { CommentSort } from "@/lib/data/comments";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatCount, initials } from "@/lib/format";
-import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
 import {
   getRelatedSimulations,
   getSimulation,
   incrementViewCount,
 } from "@/lib/data/simulations";
+import type { Simulation } from "@/types";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -71,11 +67,6 @@ export default async function SimulationPage({ params, searchParams }: Props) {
 
   void incrementViewCount(id);
 
-  const createdAt = new Date(simulation.createdAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
   const related = await getRelatedSimulations(simulation, 3);
 
   const ownerId =
@@ -89,97 +80,20 @@ export default async function SimulationPage({ params, searchParams }: Props) {
       />
 
       <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SimulationWorkspace simulation={simulation} ownerId={ownerId} />
+        <SimulationWorkspace
+          simulation={simulation}
+          ownerId={ownerId}
+          likeSlot={
+            <LikeButton
+              simulationId={simulation.id}
+              count={simulation.likeCount}
+            />
+          }
+        />
       </section>
 
       <section className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-8">
-          <header className="flex flex-col gap-6">
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="text-3xl font-medium tracking-[-0.02em] text-foreground sm:text-4xl">
-                {simulation.title}
-              </h1>
-              <ShareButton simulationId={id} />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <Link
-                href={`/u/${simulation.author.username}`}
-                className="flex items-center gap-3 transition-opacity hover:opacity-80"
-              >
-                <Avatar className="size-10">
-                  <AvatarImage src={simulation.author.avatarUrl} alt="" />
-                  <AvatarFallback className="bg-muted text-xs text-muted-foreground">
-                    {initials(simulation.author.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-foreground">
-                    {simulation.author.name}
-                  </span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    @{simulation.author.username} · {createdAt}
-                  </span>
-                </div>
-              </Link>
-
-              <div className="flex items-center gap-5 font-mono text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5 tabular-nums">
-                  <Eye className="size-4" />
-                  {formatCount(simulation.viewCount)}
-                </span>
-                <span className="flex items-center gap-1.5 tabular-nums">
-                  <Heart className="size-4" />
-                  {formatCount(simulation.likeCount)}
-                </span>
-                <span className="flex items-center gap-1.5 tabular-nums">
-                  <MessageCircle className="size-4" />
-                  {formatCount(simulation.commentCount)}
-                </span>
-              </div>
-            </div>
-          </header>
-
-          <p className="text-base leading-relaxed text-foreground/85">
-            {simulation.description}
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={`/browse?category=${simulation.category}`}
-              className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-            >
-              {CATEGORY_LABEL[simulation.category]}
-            </Link>
-            {simulation.proteinFamily && (
-              <Link
-                href={`/family/${familySlug(simulation.proteinFamily)}`}
-                className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-              >
-                {simulation.proteinFamily}
-              </Link>
-            )}
-            {simulation.organism && (
-              <Link
-                href={`/browse?organism=${encodeURIComponent(simulation.organism)}`}
-                className="rounded-full border border-border bg-background px-3 py-1 text-xs italic text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-              >
-                {simulation.organism}
-              </Link>
-            )}
-            <span className="rounded-full border border-border bg-background px-3 py-1 font-mono text-xs text-muted-foreground tabular-nums">
-              {simulation.pdbCode}
-            </span>
-            {simulation.tags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-
+        <div className="flex flex-col gap-12">
           <RelatedSimulations
             simulations={related}
             description={
@@ -189,7 +103,7 @@ export default async function SimulationPage({ params, searchParams }: Props) {
             }
           />
 
-          <div id="discussion" className="mt-4 scroll-mt-24">
+          <div id="discussion" className="scroll-mt-24">
             <CommentSection simulationId={id} sort={sort} />
           </div>
         </div>
@@ -197,5 +111,3 @@ export default async function SimulationPage({ params, searchParams }: Props) {
     </div>
   );
 }
-
-import type { Simulation } from "@/types";

@@ -140,9 +140,9 @@ export async function listSimulations(opts: {
       query = query.in("experiment_type", f.experiments);
     }
     if (f.trajectory === "yes") {
-      query = query.not("trajectory_url", "is", null);
+      query = query.eq("has_trajectory", true);
     } else if (f.trajectory === "no") {
-      query = query.is("trajectory_url", null);
+      query = query.eq("has_trajectory", false);
     }
 
     switch (f.sort) {
@@ -288,9 +288,74 @@ export async function listSimulationsLikedBy(
     .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 }
 
-// Fire-and-forget view increment. Errors are swallowed — they don't block render.
-export async function incrementViewCount(id: string): Promise<void> {
+// Fire-and-forget view tracking. Calls the dedup-aware RPC, which inserts
+// into simulation_views and only bumps simulations.view_count on a new
+// (user, day) row. Errors are swallowed — they don't block render.
+export async function incrementViewCount(
+  id: string,
+  visitorToken: string | null = null,
+): Promise<void> {
   if (!isDbAvailable()) return;
+  try {
+    const supabase = await createClient();
+    await supabase.rpc("track_simulation_view", {
+      sim_id: id,
+      token: visitorToken,
+    });
+  } catch {
+    // Tracking is best-effort; never block the page render.
+  }
+}
+
+// Trending: most viewed in the last `days` window, weighted by likes and
+// comments to surface high-engagement sims over high-traffic empties.
+// Returns up to `limit` rows; returns an empty array if no sim has any
+// recent views, so the caller can hide the section honestly.
+export async function listTrendingSimulations(
+  days: number = 7,
+  limit: number = 6,
+): Promise<Simulation[]> {
+  if (!isDbAvailable()) return [];
   const supabase = await createClient();
-  await supabase.rpc("increment_view_count", { sim_id: id });
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  // Group views in the window by simulation_id, then weight + sort client-side.
+  const { data: views } = await supabase
+    .from("simulation_views")
+    .select("simulation_id")
+    .gte("created_at", since);
+
+  if (!views?.length) return [];
+
+  const viewsBySim = new Map<string, number>();
+  for (const row of views as { simulation_id: string }[]) {
+    viewsBySim.set(
+      row.simulation_id,
+      (viewsBySim.get(row.simulation_id) ?? 0) + 1,
+    );
+  }
+
+  const candidateIds = Array.from(viewsBySim.keys());
+  if (candidateIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from("simulations")
+    .select(ROW_SELECT)
+    .in("id", candidateIds)
+    .eq("visibility", "public");
+
+  if (!data?.length) return [];
+
+  const score = (row: { id: string; like_count: number; comment_count: number }) => {
+    const v = viewsBySim.get(row.id) ?? 0;
+    // Likes count for 3 views, comments for 5 — community engagement is a
+    // stronger signal than passive traffic.
+    return v + (row.like_count ?? 0) * 3 + (row.comment_count ?? 0) * 5;
+  };
+
+  return (data as unknown as (DbSimulationRow & { like_count: number; comment_count: number })[])
+    .map((row) => ({ row, score: score(row) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => mapRow(x.row));
 }
