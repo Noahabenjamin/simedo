@@ -31,7 +31,7 @@ export async function postComment(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?redirect=/simulation/${simulationId}`);
+    redirect(`/sign-in?redirect=/simulation/${simulationId}`);
   }
 
   await supabase.from("comments").insert({
@@ -86,7 +86,7 @@ export async function toggleReaction(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?redirect=/simulation/${simulationId}`);
+    redirect(`/sign-in?redirect=/simulation/${simulationId}`);
   }
 
   if (currentlyReacted) {

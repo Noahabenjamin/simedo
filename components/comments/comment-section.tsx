@@ -92,7 +92,7 @@ function SignedOutComposerPlaceholder() {
         specific residue.
       </p>
       <Link
-        href="/login"
+        href="/sign-in"
         className="whitespace-nowrap rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
       >
         Sign in

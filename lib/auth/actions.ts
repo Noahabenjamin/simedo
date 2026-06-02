@@ -19,12 +19,12 @@ export async function signInWithPassword(formData: FormData): Promise<void> {
   const redirectTo = String(formData.get("redirect") ?? "/");
 
   if (!email || !password) {
-    errorRedirect("/login", "Email and password are required.");
+    errorRedirect("/sign-in", "Email and password are required.");
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) errorRedirect("/login", error.message);
+  if (error) errorRedirect("/sign-in", error.message);
 
   redirect(redirectTo);
 }
@@ -36,14 +36,14 @@ export async function signUp(formData: FormData): Promise<void> {
   const displayName = String(formData.get("display_name") ?? "").trim();
 
   if (!email || !password || !username) {
-    errorRedirect("/signup", "Email, password, and username are required.");
+    errorRedirect("/sign-up", "Email, password, and username are required.");
   }
   if (password.length < 8) {
-    errorRedirect("/signup", "Password must be at least 8 characters.");
+    errorRedirect("/sign-up", "Password must be at least 8 characters.");
   }
   if (!/^[a-z0-9_]{2,32}$/.test(username)) {
     errorRedirect(
-      "/signup",
+      "/sign-up",
       "Username must be 2–32 characters, lowercase letters, numbers, and underscores only.",
     );
   }
@@ -56,7 +56,7 @@ export async function signUp(formData: FormData): Promise<void> {
       data: { username, display_name: displayName || username },
     },
   });
-  if (error) errorRedirect("/signup", error.message);
+  if (error) errorRedirect("/sign-up", error.message);
 
   redirect("/onboarding");
 }
@@ -91,9 +91,9 @@ export async function signInWithGoogle(formData: FormData): Promise<void> {
       redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
     },
   });
-  if (error) errorRedirect("/login", error.message);
+  if (error) errorRedirect("/sign-in", error.message);
   if (data?.url) redirect(data.url);
-  errorRedirect("/login", "Couldn't reach Google sign-in.");
+  errorRedirect("/sign-in", "Couldn't reach Google sign-in.");
 }
 
 export async function updateProfile(formData: FormData): Promise<void> {
@@ -101,7 +101,7 @@ export async function updateProfile(formData: FormData): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) errorRedirect("/login", "Not signed in.");
+  if (!user) errorRedirect("/sign-in", "Not signed in.");
 
   const bio = String(formData.get("bio") ?? "").trim();
   const institution = String(formData.get("institution") ?? "").trim();

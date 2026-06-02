@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu } from "@/components/account-menu";
 
 function openPalette(initialQuery?: string) {
   if (typeof window === "undefined") return;
@@ -14,7 +15,16 @@ function openPalette(initialQuery?: string) {
   );
 }
 
-export function Header() {
+type Props = {
+  viewer: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string;
+  } | null;
+};
+
+export function Header({ viewer }: Props) {
   const pathname = usePathname();
   // Homepage uses the studio-style inline nav inside the hero;
   // suppress the global header there so we don't double-stack.
@@ -58,19 +68,34 @@ export function Header() {
         </button>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">
-          <Link
-            href="/login"
-            className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/upload"
-            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Upload
-          </Link>
-          <ThemeToggle />
+          {viewer ? (
+            <>
+              <Link
+                href="/upload"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Upload
+              </Link>
+              <ThemeToggle />
+              <AccountMenu viewer={viewer} />
+            </>
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/upload"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Upload
+              </Link>
+              <ThemeToggle />
+            </>
+          )}
         </div>
       </div>
     </header>

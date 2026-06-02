@@ -49,7 +49,7 @@ export async function createSimulationFromUpload(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect("/login?redirect=/upload");
+    redirect("/sign-in?redirect=/upload");
   }
 
   const category = CATEGORY_MAP[input.category] ?? "protein";

@@ -9,7 +9,7 @@ type Props = {
 };
 
 // Server-action backed follow button. Three modes:
-// - Signed-out: link to /login with redirect back to this profile.
+// - Signed-out: link to /sign-in with redirect back to this profile.
 // - Own profile or seed account: hidden / disabled.
 // - Otherwise: a form that posts to toggleFollow.
 
@@ -25,7 +25,7 @@ export function FollowButton({
   if (!viewerUserId) {
     return (
       <Link
-        href="/login"
+        href="/sign-in"
         className="self-start whitespace-nowrap rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
       >
         Sign in to follow

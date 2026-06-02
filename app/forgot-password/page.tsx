@@ -25,7 +25,7 @@ export default async function ForgotPasswordPage({
         subtitle="If we have an account for that address, you'll get a reset link shortly."
         footer={
           <Link
-            href="/login"
+            href="/sign-in"
             className="text-foreground transition-colors hover:text-primary"
           >
             Back to sign in
@@ -43,7 +43,7 @@ export default async function ForgotPasswordPage({
       subtitle="We'll email you a link."
       footer={
         <Link
-          href="/login"
+          href="/sign-in"
           className="text-foreground transition-colors hover:text-primary"
         >
           Back to sign in

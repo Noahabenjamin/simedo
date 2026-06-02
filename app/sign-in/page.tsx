@@ -4,13 +4,15 @@ import { AuthLayout } from "@/components/auth/auth-layout";
 import { AuthFormError } from "@/components/auth/auth-form-error";
 import { ConfigureSupabase } from "@/components/auth/configure-supabase";
 import { Input } from "@/components/ui/input";
-import { signInWithGoogle, signUp } from "@/lib/auth/actions";
+import { signInWithGoogle, signInWithPassword } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isDbAvailable } from "@/lib/data/db-available";
 
+void redirect;
+
 type SearchParams = Promise<{ redirect?: string; error?: string }>;
 
-export default async function SignupPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: SearchParams;
@@ -26,20 +28,21 @@ export default async function SignupPage({
   } = await supabase.auth.getUser();
   if (user) redirect(redirectTo);
 
-  // signUp action handles its own success/error redirects internally.
+  // signInWithPassword handles both success (redirect) and failure
+  // (redirect with ?error=...) internally.
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Share simulations. Discuss the science. Learn from the community."
+      title="Sign in"
+      subtitle="Welcome back."
       footer={
         <span>
-          Already have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
-            href={`/login?redirect=${encodeURIComponent(redirectTo)}`}
+            href={`/sign-up?redirect=${encodeURIComponent(redirectTo)}`}
             className="text-foreground transition-colors hover:text-primary"
           >
-            Sign in
+            Create one
           </Link>
         </span>
       }
@@ -51,6 +54,7 @@ export default async function SignupPage({
             type="submit"
             className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
           >
+            <GoogleMark />
             Continue with Google
           </button>
         </form>
@@ -61,31 +65,8 @@ export default async function SignupPage({
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <form action={signUp} className="flex flex-col gap-3">
+        <form action={signInWithPassword} className="flex flex-col gap-3">
           <input type="hidden" name="redirect" value={redirectTo} />
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">
-              Display name
-            </span>
-            <Input name="display_name" required className="h-11" />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">Username</span>
-            <Input
-              name="username"
-              required
-              pattern="[a-z0-9_]{2,32}"
-              placeholder="e.g. miraokafor"
-              className="h-11 font-mono"
-            />
-            <span className="text-[11px] text-muted-foreground">
-              Lowercase letters, numbers, and underscores. Your profile lives at
-              <span className="font-mono"> /u/[username]</span>.
-            </span>
-          </label>
-
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Email</span>
             <Input
@@ -96,7 +77,6 @@ export default async function SignupPage({
               className="h-11"
             />
           </label>
-
           <label className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Password</span>
             <Input
@@ -104,12 +84,9 @@ export default async function SignupPage({
               name="password"
               required
               minLength={8}
-              autoComplete="new-password"
+              autoComplete="current-password"
               className="h-11"
             />
-            <span className="text-[11px] text-muted-foreground">
-              At least 8 characters.
-            </span>
           </label>
 
           <AuthFormError message={params.error} />
@@ -118,10 +95,40 @@ export default async function SignupPage({
             type="submit"
             className="mt-2 h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Create account
+            Sign in
           </button>
+
+          <Link
+            href="/forgot-password"
+            className="text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Forgot password?
+          </Link>
         </form>
       </div>
     </AuthLayout>
+  );
+}
+
+function GoogleMark() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.26 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A10.99 10.99 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.77.42 3.45 1.18 4.94l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.07.56 4.21 1.65l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
   );
 }

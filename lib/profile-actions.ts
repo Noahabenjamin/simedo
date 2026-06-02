@@ -23,7 +23,7 @@ export async function toggleFollow(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?redirect=/u/${username}`);
+    redirect(`/sign-in?redirect=/u/${username}`);
   }
   if (user!.id === profileId) return;
 

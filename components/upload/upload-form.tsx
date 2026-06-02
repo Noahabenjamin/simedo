@@ -186,7 +186,7 @@ export function UploadForm() {
       if (!user) {
         toast.error("Sign in to upload");
         setSubmitting(false);
-        router.push("/login?redirect=/upload");
+        router.push("/sign-in?redirect=/upload");
         return;
       }
 

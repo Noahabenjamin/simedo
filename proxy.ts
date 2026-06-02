@@ -1,17 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-// Helix auth middleware.
+// Helix auth proxy.
 // - Refreshes the Supabase session cookie on every request.
 // - Gates /upload, /settings, /onboarding behind authentication.
 // - All other routes are public.
 //
-// Without Supabase env vars set, the middleware short-circuits and passes
+// Without Supabase env vars set, the proxy short-circuits and passes
 // everything through. Lets local dev work without the backend wired up.
 
 const PROTECTED_PREFIXES = ["/upload", "/settings", "/onboarding"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {

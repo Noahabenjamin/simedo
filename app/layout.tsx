@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Header } from "@/components/header";
+import { HeaderShell } from "@/components/header-shell";
 import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { WelcomeTour } from "@/components/onboarding/welcome-tour";
@@ -65,7 +65,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <Header />
+          <HeaderShell />
           <main className="flex-1 flex flex-col">{children}</main>
           <Footer />
           <Toaster />

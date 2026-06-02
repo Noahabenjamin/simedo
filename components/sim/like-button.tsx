@@ -38,7 +38,7 @@ export async function LikeButton({ simulationId, count }: Props) {
   if (!viewerSignedIn) {
     return (
       <Link
-        href={`/login?redirect=/simulation/${simulationId}`}
+        href={`/sign-in?redirect=/simulation/${simulationId}`}
         className="flex items-center gap-1.5 tabular-nums text-muted-foreground transition-colors hover:text-foreground"
         title="Sign in to like"
       >

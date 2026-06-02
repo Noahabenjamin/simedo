@@ -21,7 +21,7 @@ export async function toggleLike(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?redirect=/simulation/${simulationId}`);
+    redirect(`/sign-in?redirect=/simulation/${simulationId}`);
   }
 
   if (currentlyLiked) {

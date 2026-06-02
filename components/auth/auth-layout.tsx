@@ -8,7 +8,7 @@ type Props = {
   footer?: ReactNode;
 };
 
-// Shared shell for /login /signup /forgot-password. Centered, minimal,
+// Shared shell for /sign-in /sign-up /forgot-password. Centered, minimal,
 // pure white, v2 minimal aesthetic.
 export function AuthLayout({ title, subtitle, children, footer }: Props) {
   return (
