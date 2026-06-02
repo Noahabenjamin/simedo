@@ -1,31 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-// Returns true after mount when the user prefers reduced motion. Stays
-// false on the server and during initial hydration to keep markup stable.
-export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-  return reduced;
+// Match a media query without the setState-in-effect lint trap. We hand
+// React a subscribe/getSnapshot pair so the value comes from the actual
+// MediaQueryList event stream rather than a state copy we have to sync.
+// The server snapshot is `false` so SSR markup is stable.
+
+function makeMediaStore(query: string) {
+  return {
+    subscribe(onChange: () => void) {
+      if (typeof window === "undefined") return () => {};
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    getSnapshot(): boolean {
+      if (typeof window === "undefined") return false;
+      return window.matchMedia(query).matches;
+    },
+    getServerSnapshot(): boolean {
+      return false;
+    },
+  };
 }
 
-// Returns true on viewports under the breakpoint (default 640 px). False
-// during SSR; only updates client-side so server and client markup match.
+const STORE_CACHE = new Map<string, ReturnType<typeof makeMediaStore>>();
+function getStore(query: string) {
+  let store = STORE_CACHE.get(query);
+  if (!store) {
+    store = makeMediaStore(query);
+    STORE_CACHE.set(query, store);
+  }
+  return store;
+}
+
+export function useReducedMotion(): boolean {
+  const store = getStore("(prefers-reduced-motion: reduce)");
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
+}
+
 export function useIsNarrow(breakpoint: number = 640): boolean {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    setNarrow(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setNarrow(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [breakpoint]);
-  return narrow;
+  const store = getStore(`(max-width: ${breakpoint}px)`);
+  return useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
 }

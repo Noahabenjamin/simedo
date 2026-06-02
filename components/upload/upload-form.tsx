@@ -92,7 +92,10 @@ export function UploadForm() {
   );
   const hydratedRef = useRef(false);
 
-  // Hydrate from localStorage on mount.
+  // Hydrate from localStorage on mount. Intentionally deferred to an
+  // effect so server and client render the same initial state — the
+  // alternative (read in useState initializer) causes a hydration
+  // mismatch when the user has a stored draft.
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
@@ -100,6 +103,7 @@ export function UploadForm() {
       const raw = localStorage.getItem(DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Draft>;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDraft((d) => ({ ...d, ...parsed }));
       }
     } catch {

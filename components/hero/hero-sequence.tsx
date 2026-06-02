@@ -30,10 +30,6 @@ export function HeroSequence() {
   const reducedMotion = useReducedMotion();
   const narrow = useIsNarrow(640);
 
-  if (reducedMotion) {
-    return <ReducedMotionHero />;
-  }
-
   const studioOpacity = useMemo(
     () => interpolateScalar(progress, (k) => k.studioOpacity),
     [progress],
@@ -58,6 +54,12 @@ export function HeroSequence() {
   // Same bound for the "lock scroll" behavior on the menu would be nice,
   // but we just let the user scroll back up if they want.
   void lerp;
+
+  // Reduced-motion fallback must come AFTER all hooks so React's hook
+  // order stays stable across renders.
+  if (reducedMotion) {
+    return <ReducedMotionHero />;
+  }
 
   return (
     <section

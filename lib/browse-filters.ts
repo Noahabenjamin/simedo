@@ -85,6 +85,7 @@ export type BrowseFilters = {
   families: string[];
   organisms: string[];
   experiments: string[];
+  tags: string[];
   trajectory?: "yes" | "no";
   sort: SortKey;
 };
@@ -106,6 +107,7 @@ export function parseFilters(
     families: parseMulti(searchParams.family),
     organisms: parseMulti(searchParams.organism),
     experiments: parseMulti(searchParams.experiment),
+    tags: parseMulti(searchParams.tag),
     trajectory,
     sort,
   };
@@ -143,6 +145,12 @@ export function applyFilters(
   if (f.experiments.length > 0) {
     result = result.filter((s) => f.experiments.includes(s.experimentType));
   }
+  if (f.tags.length > 0) {
+    const want = new Set(f.tags.map((t) => t.toLowerCase()));
+    result = result.filter((s) =>
+      s.tags.some((t) => want.has(t.toLowerCase())),
+    );
+  }
   if (f.trajectory === "yes") {
     result = result.filter((s) => s.hasTrajectory);
   } else if (f.trajectory === "no") {
@@ -177,6 +185,7 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
     f.families.length > 0 ||
     f.organisms.length > 0 ||
     f.experiments.length > 0 ||
+    f.tags.length > 0 ||
     !!f.trajectory
   );
 }

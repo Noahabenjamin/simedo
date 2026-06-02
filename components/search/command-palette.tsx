@@ -100,6 +100,7 @@ export function CommandPalette() {
       if (raw) {
         const arr = JSON.parse(raw);
         if (Array.isArray(arr)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setRecent(arr.filter((x) => typeof x === "string").slice(0, RECENT_MAX));
         }
       }
@@ -113,6 +114,8 @@ export function CommandPalette() {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 0);
     } else {
+      // Reset transient palette state on close.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery("");
       setActiveIdx(0);
     }
@@ -122,6 +125,8 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return;
     if (query.trim().length < 2) {
+      // Clear stale results when the user erases their query.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults({ simulations: [], users: [] });
       setLoading(false);
       return;

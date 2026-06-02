@@ -220,11 +220,16 @@ function DnaGroup({
       false,
     );
 
-    // Seeded PRNG so the A-T / G-C pattern is deterministic across renders.
-    let seed = 1337;
-    const rand = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
+    // Pure index-based hash so the A-T / G-C pattern is deterministic
+    // across renders without any in-render mutation.
+    const hash = (index: number, salt: number) => {
+      let x = (index * 2654435761 + salt * 1597334677) | 0;
+      x = (x ^ (x >>> 16)) >>> 0;
+      x = Math.imul(x, 2246822519) >>> 0;
+      x = (x ^ (x >>> 13)) >>> 0;
+      x = Math.imul(x, 3266489917) >>> 0;
+      x = (x ^ (x >>> 16)) >>> 0;
+      return x / 0x100000000;
     };
 
     const rungs: {
@@ -243,8 +248,8 @@ function DnaGroup({
         y,
         angle,
         isTarget,
-        pairType: isTarget ? "AT" : rand() < 0.5 ? "AT" : "GC",
-        flipped: isTarget ? false : rand() < 0.5,
+        pairType: isTarget ? "AT" : hash(i, 11) < 0.5 ? "AT" : "GC",
+        flipped: isTarget ? false : hash(i, 12) < 0.5,
       });
     }
     return { tubeAGeom: aGeom, tubeBGeom: bGeom, rungs };

@@ -139,6 +139,26 @@ export async function listSimulations(opts: {
     if (f.experiments.length > 0) {
       query = query.in("experiment_type", f.experiments);
     }
+    if (f.tags.length > 0) {
+      // Two-step resolve via the join tables. If no sim has any of the
+      // requested tags, the IN clause below collapses to no matches.
+      const wanted = f.tags.map((t) => t.toLowerCase());
+      const { data: tagRows } = await supabase
+        .from("tags")
+        .select("id")
+        .in("name", wanted);
+      const tagIds = (tagRows ?? []).map((t: { id: string }) => t.id);
+      if (tagIds.length === 0) return [];
+      const { data: stRows } = await supabase
+        .from("simulation_tags")
+        .select("simulation_id")
+        .in("tag_id", tagIds);
+      const simIds = Array.from(
+        new Set((stRows ?? []).map((s: { simulation_id: string }) => s.simulation_id)),
+      );
+      if (simIds.length === 0) return [];
+      query = query.in("id", simIds);
+    }
     if (f.trajectory === "yes") {
       query = query.eq("has_trajectory", true);
     } else if (f.trajectory === "no") {

@@ -5,6 +5,7 @@ import { isDbAvailable } from "@/lib/data/db-available";
 import { getCommentsForSimulation, type CommentSort } from "@/lib/data/comments";
 import { CommentComposer } from "./comment-composer";
 import { CommentItem } from "./comment-item";
+import { RealtimeCommentBridge } from "./realtime-bridge";
 
 type Props = {
   simulationId: string;
@@ -31,6 +32,7 @@ export async function CommentSection({ simulationId, sort }: Props) {
 
   return (
     <section className="flex flex-col gap-6">
+      <RealtimeCommentBridge simulationId={simulationId} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-medium tracking-tight text-foreground">
           Discussion
@@ -111,8 +113,8 @@ function EmptyDiscussion() {
         No comments yet
       </p>
       <p className="max-w-md text-xs text-muted-foreground">
-        Share what you're seeing in the trajectory. Attach a residue or a
-        frame to ground the discussion in a specific moment.
+        Share what you&apos;re seeing in the trajectory. Attach a residue or
+        a frame to ground the discussion in a specific moment.
       </p>
     </div>
   );

@@ -17,6 +17,18 @@ const LITE_COUNT = 80;
 const RADIUS = 6;
 const HEIGHT = 20;
 
+// Pure hash → value in [0, 1). Used to seed particle positions without
+// any closure state — keeps the render pure and the field deterministic.
+function hash(index: number, salt: number): number {
+  let x = index * 2654435761 + salt * 1597334677;
+  x = (x ^ (x >>> 16)) >>> 0;
+  x = Math.imul(x, 2246822519) >>> 0;
+  x = (x ^ (x >>> 13)) >>> 0;
+  x = Math.imul(x, 3266489917) >>> 0;
+  x = (x ^ (x >>> 16)) >>> 0;
+  return x / 0x100000000;
+}
+
 type Props = { lite?: boolean };
 
 export function Particles({ lite = false }: Props) {
@@ -24,14 +36,10 @@ export function Particles({ lite = false }: Props) {
   const count = lite ? LITE_COUNT : FULL_COUNT;
 
   // Per-instance state: home position (radius, angle, baseY), drift speed.
-  // Seeded PRNG so the particle field stays stable across renders and
-  // doesn't trip the "no impure functions during render" rule.
+  // Pure index-based hash so the particle field stays stable across renders
+  // without any in-render mutation. Each particle pulls 5 deterministic
+  // values from `hash(index, salt)`.
   const state = useMemo(() => {
-    let seed = 1729;
-    const rand = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
     const items: {
       r: number;
       a: number;
@@ -41,11 +49,11 @@ export function Particles({ lite = false }: Props) {
     }[] = [];
     for (let i = 0; i < count; i++) {
       items.push({
-        r: 0.3 + rand() * RADIUS,
-        a: rand() * Math.PI * 2,
-        y0: rand() * HEIGHT - HEIGHT / 2,
-        speed: 0.12 + rand() * 0.28,
-        size: 0.005 + rand() * 0.018,
+        r: 0.3 + hash(i, 1) * RADIUS,
+        a: hash(i, 2) * Math.PI * 2,
+        y0: hash(i, 3) * HEIGHT - HEIGHT / 2,
+        speed: 0.12 + hash(i, 4) * 0.28,
+        size: 0.005 + hash(i, 5) * 0.018,
       });
     }
     return items;
