@@ -8,6 +8,7 @@ import {
   Play,
   Send,
   Sparkles,
+  StopCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -342,22 +343,33 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
             placeholder={
               aiEnabled === false
                 ? "AI guide is not configured"
-                : PLACEHOLDERS[placeholderIdx]
+                : isStreaming
+                  ? "Generating…"
+                  : PLACEHOLDERS[placeholderIdx]
             }
             disabled={isStreaming || aiEnabled === false}
             className="h-10 flex-1 rounded-full px-4"
             aria-label="Ask the AI"
           />
-          <button
-            type="submit"
-            disabled={
-              isStreaming || !input.trim() || aiEnabled === false
-            }
-            aria-label="Send"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Send className="size-4" />
-          </button>
+          {isStreaming ? (
+            <button
+              type="button"
+              onClick={() => abortRef.current?.abort()}
+              aria-label="Stop response"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/85"
+            >
+              <StopCircle className="size-4" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim() || aiEnabled === false}
+              aria-label="Send"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <Send className="size-4" />
+            </button>
+          )}
         </div>
         <label
           className={cn(
