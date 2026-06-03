@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isDbAvailable } from "@/lib/data/db-available";
 import { formatCount } from "@/lib/format";
 import { toggleLike } from "@/lib/like-actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 type Props = {
   simulationId: string;
@@ -56,12 +57,11 @@ export async function LikeButton({ simulationId, count }: Props) {
         name="currently_liked"
         value={liked ? "1" : "0"}
       />
-      <button
-        type="submit"
+      <PendingButton
         className={
           liked
-            ? "flex items-center gap-1.5 tabular-nums text-rose-500 transition-colors hover:text-rose-400"
-            : "flex items-center gap-1.5 tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+            ? "flex items-center gap-1.5 tabular-nums text-rose-500 transition-colors hover:text-rose-400 disabled:opacity-70"
+            : "flex items-center gap-1.5 tabular-nums text-muted-foreground transition-colors hover:text-foreground disabled:opacity-70"
         }
         aria-pressed={liked}
         aria-label={liked ? "Unlike simulation" : "Like simulation"}
@@ -72,7 +72,7 @@ export async function LikeButton({ simulationId, count }: Props) {
           strokeWidth={1.6}
         />
         {formatCount(count)}
-      </button>
+      </PendingButton>
     </form>
   );
 }

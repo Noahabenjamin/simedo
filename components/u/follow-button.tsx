@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { toggleFollow } from "@/lib/profile-actions";
+import { PendingButton } from "@/components/ui/pending-button";
 
 type Props = {
   profileId: string;
@@ -50,16 +51,15 @@ export function FollowButton({
         name="currently_following"
         value={initiallyFollowing ? "1" : "0"}
       />
-      <button
-        type="submit"
+      <PendingButton
         className={
           initiallyFollowing
-            ? "whitespace-nowrap rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30"
-            : "whitespace-nowrap rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
+            ? "flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-foreground/30 disabled:opacity-70"
+            : "flex items-center gap-1.5 whitespace-nowrap rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/85 disabled:opacity-70"
         }
       >
         {initiallyFollowing ? "Following" : "Follow"}
-      </button>
+      </PendingButton>
     </form>
   );
 }
