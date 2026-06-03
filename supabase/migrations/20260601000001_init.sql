@@ -1,4 +1,4 @@
--- Helix initial schema.
+-- Simedo initial schema.
 -- Run order: 1 init → 2 rls → 3 triggers → seed.sql
 
 -- Extensions

@@ -29,7 +29,7 @@ export default function Page() {
     <DocPage
       eyebrow="Sharing your work"
       title="Supported formats"
-      lede="Helix can read most trajectory and topology formats used by GROMACS, AMBER, NAMD, and CHARMM. Use this page as the reference when preparing an upload."
+      lede="Simedo can read most trajectory and topology formats used by GROMACS, AMBER, NAMD, and CHARMM. Use this page as the reference when preparing an upload."
       href="/docs/formats"
     >
       <DocH2>Trajectories</DocH2>

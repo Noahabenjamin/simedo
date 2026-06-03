@@ -11,7 +11,7 @@ const STORAGE_KEY = "helix.onboardingSeen.v1";
 
 const STEPS = [
   {
-    title: "Welcome to Helix.",
+    title: "Welcome to Simedo.",
     body: "A platform for sharing molecular dynamics simulations — real science, beautifully rendered.",
   },
   {
@@ -75,7 +75,7 @@ export function WelcomeTour() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
-            aria-label="Welcome to Helix"
+            aria-label="Welcome to Simedo"
             className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-background p-6 sm:p-8"
           >
             <div className="flex items-start justify-between gap-3">
@@ -85,7 +85,7 @@ export function WelcomeTour() {
                   className="size-1.5 rounded-full bg-primary"
                 />
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Helix · {step + 1} / {STEPS.length}
+                  Simedo · {step + 1} / {STEPS.length}
                 </span>
               </div>
               <button

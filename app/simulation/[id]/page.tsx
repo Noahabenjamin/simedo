@@ -24,7 +24,7 @@ const SITE_URL =
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const sim = await getSimulation(id);
-  if (!sim) return { title: "Simulation not found — Helix" };
+  if (!sim) return { title: "Simulation not found — Simedo" };
 
   const url = `${SITE_URL}/simulation/${id}`;
   const ogImage = `${SITE_URL}/api/og/sim/${id}`;
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : sim.description;
 
   return {
-    title: `${sim.title} — Helix`,
+    title: `${sim.title} — Simedo`,
     description: desc,
     alternates: { canonical: url },
     openGraph: {
@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: desc,
       url,
       type: "article",
-      siteName: "Helix",
+      siteName: "Simedo",
       images: [{ url: ogImage, width: 1200, height: 630, alt: sim.title }],
     },
     twitter: {

@@ -4,7 +4,7 @@
 // EU GDPR).
 
 export const metadata = {
-  title: "Privacy Policy — Helix",
+  title: "Privacy Policy — Simedo",
 };
 
 export default function PrivacyPage() {

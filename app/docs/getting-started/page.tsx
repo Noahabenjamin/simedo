@@ -13,11 +13,11 @@ export default function Page() {
     <DocPage
       eyebrow="Start here"
       title="Getting started"
-      lede="Helix lets you watch molecular dynamics simulations in a browser, share them with a link, and ask an AI guide what's going on. Here's the five-minute orientation."
+      lede="Simedo lets you watch molecular dynamics simulations in a browser, share them with a link, and ask an AI guide what's going on. Here's the five-minute orientation."
       href="/docs/getting-started"
     >
       <p>
-        A <strong>simulation</strong> on Helix is a 3D animation of atoms
+        A <strong>simulation</strong> on Simedo is a 3D animation of atoms
         moving over time — the output of a molecular dynamics run. The minimum
         you need to share one is a trajectory file. With a topology file alongside
         it, you also get atom names, bonds, residues, and chains in the viewer.
@@ -79,7 +79,7 @@ export default function Page() {
       </ol>
 
       <DocCallout title="Heads up">
-        Helix is in closed beta. Uploads are gated to invited researchers
+        Simedo is in closed beta. Uploads are gated to invited researchers
         until the storage and review backend lands. You can still explore
         every public simulation already on the platform.
       </DocCallout>

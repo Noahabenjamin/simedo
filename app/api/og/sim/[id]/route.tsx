@@ -13,9 +13,9 @@ export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const sim = await getSimulation(id);
 
-  const title = sim?.title ?? "Helix";
+  const title = sim?.title ?? "Simedo";
   const pdbCode = sim?.pdbCode ?? "";
-  const author = sim?.author?.name ?? "Helix";
+  const author = sim?.author?.name ?? "Simedo";
 
   return new ImageResponse(
     (
@@ -41,7 +41,7 @@ export async function GET(_req: Request, { params }: Params) {
             }}
           />
           <div style={{ fontSize: "22px", fontWeight: 500, color: "#0A0A0A" }}>
-            Helix
+            Simedo
           </div>
         </div>
 

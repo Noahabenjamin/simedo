@@ -1,4 +1,4 @@
-export const metadata = { title: "Community guidelines — Helix" };
+export const metadata = { title: "Community guidelines — Simedo" };
 
 export default function GuidelinesPage() {
   return (
@@ -8,7 +8,7 @@ export default function GuidelinesPage() {
           Community guidelines
         </h1>
         <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Helix is a place for serious, curious, generous people to share
+          Simedo is a place for serious, curious, generous people to share
           science. Here&apos;s what we ask.
         </p>
       </header>

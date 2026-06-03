@@ -13,7 +13,7 @@ export default function Page() {
     <DocPage
       eyebrow="Developers"
       title="API (preview)"
-      lede="Programmatic access to public Helix simulations. This page sketches the shape we're designing toward — endpoints are not stable yet and will change before launch."
+      lede="Programmatic access to public Simedo simulations. This page sketches the shape we're designing toward — endpoints are not stable yet and will change before launch."
       href="/docs/api"
     >
       <DocCallout title="Not yet shipped" tone="warn">
@@ -85,7 +85,7 @@ export default function Page() {
       <DocH2>SDKs</DocH2>
       <p>
         A small Python SDK will ship alongside v1. It wraps the endpoints
-        above and adds helpers for handing a Helix simulation directly to{" "}
+        above and adds helpers for handing a Simedo simulation directly to{" "}
         <DocInline>MDTraj</DocInline> or <DocInline>MDAnalysis</DocInline>:
       </p>
       <DocCode>{`from helix import client

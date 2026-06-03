@@ -5,7 +5,7 @@ import { SimulationWorkspaceEmbed } from "@/components/embed/simulation-workspac
 import { getSimulation } from "@/lib/data/simulations";
 
 // Minimal viewer-only route for iframe embedding.
-// Loads only the molecular viewer + a small "View on Helix" link.
+// Loads only the molecular viewer + a small "View on Simedo" link.
 // Respects visibility: private sims 404 here just like everywhere else.
 
 type Props = {
@@ -31,7 +31,7 @@ export default async function EmbedPage({ params }: Props) {
         className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 rounded-full border border-border bg-background/90 px-2.5 py-1 text-[11px] font-medium text-foreground backdrop-blur-md transition-colors hover:border-foreground/30"
       >
         <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
-        <span>{simulation.pdbCode || "Helix"}</span>
+        <span>{simulation.pdbCode || "Simedo"}</span>
         <ExternalLink className="size-3 text-muted-foreground" />
       </Link>
     </div>

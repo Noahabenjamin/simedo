@@ -19,7 +19,7 @@ export function AuthLayout({ title, subtitle, children, footer }: Props) {
           className="mb-12 inline-flex items-center gap-2 transition-opacity hover:opacity-80"
         >
           <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
-          <span className="text-base font-medium tracking-tight">Helix</span>
+          <span className="text-base font-medium tracking-tight">Simedo</span>
         </Link>
 
         <h1 className="text-2xl font-medium tracking-[-0.02em] text-foreground sm:text-3xl">

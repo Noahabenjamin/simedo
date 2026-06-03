@@ -1,8 +1,8 @@
 import { DocsSidebar } from "@/components/docs/sidebar";
 
 export const metadata = {
-  title: { default: "Docs", template: "%s — Helix docs" },
-  description: "Documentation for Helix: uploading, formats, viewer, and API.",
+  title: { default: "Docs", template: "%s — Simedo docs" },
+  description: "Documentation for Simedo: uploading, formats, viewer, and API.",
 };
 
 export default function DocsLayout({

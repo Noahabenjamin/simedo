@@ -33,7 +33,7 @@ export function BlueMenu({ opacity }: Props) {
         color: "#FFFFFF",
       }}
     >
-      {/* Header — small Helix wordmark + thin divider */}
+      {/* Header — small Simedo wordmark + thin divider */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -42,14 +42,14 @@ export function BlueMenu({ opacity }: Props) {
       >
         <span aria-hidden="true" className="size-1.5 rounded-full bg-cyan-300" />
         <span className="text-sm font-medium tracking-tight text-white/90">
-          Helix
+          Simedo
         </span>
         <span aria-hidden="true" className="h-px w-12 bg-white/20" />
         <span
           className="text-[10px] uppercase tracking-[0.28em] text-white/40"
           style={{ fontFamily: "var(--font-geist-mono), monospace" }}
         >
-          v0.1 · 2026
+          Simedo v0.1 · 2026
         </span>
       </motion.div>
 

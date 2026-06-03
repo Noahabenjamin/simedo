@@ -14,7 +14,7 @@ export const DOC_SECTIONS: DocSection[] = [
       {
         title: "Getting started",
         href: "/docs/getting-started",
-        blurb: "What Helix is and how to take your first look at a simulation.",
+        blurb: "What Simedo is and how to take your first look at a simulation.",
       },
     ],
   },
@@ -46,7 +46,7 @@ export const DOC_SECTIONS: DocSection[] = [
       {
         title: "Embedding",
         href: "/docs/embedding",
-        blurb: "Drop a Helix viewer into a paper, slide deck, or website.",
+        blurb: "Drop a Simedo viewer into a paper, slide deck, or website.",
       },
     ],
   },

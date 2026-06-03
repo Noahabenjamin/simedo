@@ -43,7 +43,7 @@ export function Header({ viewer }: Props) {
               className="size-1.5 rounded-full bg-primary"
             />
             <span className="text-base font-medium tracking-tight text-foreground">
-              Helix
+              Simedo
             </span>
           </Link>
           <Link

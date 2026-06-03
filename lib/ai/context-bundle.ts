@@ -166,7 +166,7 @@ async function fetchPdbHeader(pdbCode: string): Promise<PdbHeader | null> {
   const id = pdbCode.toLowerCase();
   const url = `https://data.rcsb.org/rest/v1/core/entry/${id}`;
   const res = await fetch(url, {
-    headers: { Accept: "application/json", "User-Agent": "Helix/0.1 (helix.science)" },
+    headers: { Accept: "application/json", "User-Agent": "Simedo/0.1 (simedo.work)" },
     signal: AbortSignal.timeout(4000),
     next: { revalidate: 60 * 60 * 24 * 30 }, // 30 days
   });

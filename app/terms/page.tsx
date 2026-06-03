@@ -1,6 +1,6 @@
 // Terms of Service — DRAFT.
 
-export const metadata = { title: "Terms of Service — Helix" };
+export const metadata = { title: "Terms of Service — Simedo" };
 
 export default function TermsPage() {
   return (
@@ -18,8 +18,8 @@ export default function TermsPage() {
         </p>
 
         <S title="Acceptance">
-          By using Helix you agree to these terms. If you don&apos;t agree,
-          don&apos;t use Helix.
+          By using Simedo you agree to these terms. If you don&apos;t agree,
+          don&apos;t use Simedo.
         </S>
 
         <S title="Your account">
@@ -30,7 +30,7 @@ export default function TermsPage() {
 
         <S title="Your content">
           You retain ownership of simulations and comments you post. By
-          uploading you grant Helix a non-exclusive licence to host, display,
+          uploading you grant Simedo a non-exclusive licence to host, display,
           and distribute your content as part of the platform — including
           allowing other users to view and embed it under the licence you
           select on upload.
@@ -38,7 +38,7 @@ export default function TermsPage() {
 
         <S title="Acceptable use">
           Don&apos;t upload content you don&apos;t have the right to share.
-          Don&apos;t use Helix to harass, defame, or spam. Don&apos;t attempt
+          Don&apos;t use Simedo to harass, defame, or spam. Don&apos;t attempt
           to circumvent the platform&apos;s rate limits or security.
         </S>
 
@@ -56,7 +56,7 @@ export default function TermsPage() {
         </S>
 
         <S title="Disclaimers">
-          Helix is provided &quot;as is.&quot; We do not guarantee uninterrupted
+          Simedo is provided &quot;as is.&quot; We do not guarantee uninterrupted
           service or that simulations are scientifically accurate — that&apos;s
           a property of the uploader, not the platform.
         </S>

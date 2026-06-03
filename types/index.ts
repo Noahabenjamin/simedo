@@ -1,4 +1,4 @@
-// Shared types for Helix. Add domain types here as the schema grows.
+// Shared types for Simedo. Add domain types here as the schema grows.
 
 export type SimulationCategory =
   | "protein"

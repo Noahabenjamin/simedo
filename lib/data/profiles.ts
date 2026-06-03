@@ -3,7 +3,7 @@ import { mockSimulations } from "@/lib/mock-data";
 import { isDbAvailable } from "./db-available";
 import type { Profile, Simulation } from "@/types";
 
-// Server-side profile fetchers. Falls back to a synthetic Helix Team
+// Server-side profile fetchers. Falls back to a synthetic Simedo Team
 // profile derived from the mock simulations when the DB isn't configured.
 
 type DbUserRow = {
@@ -18,7 +18,7 @@ type DbUserRow = {
   created_at: string;
 };
 
-// Stays in sync with seed.sql's Helix Team account.
+// Stays in sync with seed.sql's Simedo Team account.
 const SEED_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 function fallbackAvatar(seed: string): string {
@@ -31,8 +31,8 @@ function mockProfileForTeam(): Profile {
   return {
     id: SEED_USER_ID,
     username: "helix-team",
-    displayName: "Helix Team",
-    bio: "Reference structures curated by the Helix team. Browse to explore — upload your own simulation to claim a real profile.",
+    displayName: "Simedo Team",
+    bio: "Reference structures curated by the Simedo team. Browse to explore — upload your own simulation to claim a real profile.",
     institution: null,
     orcid: null,
     avatarUrl: mockSimulations[0]?.author.avatarUrl ?? fallbackAvatar("helix-team"),

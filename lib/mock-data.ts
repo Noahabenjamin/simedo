@@ -6,19 +6,19 @@ const thumb = (pdb: string) => `/api/thumbnail/${pdb.toLowerCase()}`;
 const TEAM_AVATAR_URL =
   "https://api.dicebear.com/9.x/shapes/svg?seed=helix-team&backgroundColor=0a1437&shape1Color=2563eb&shape2Color=60a5fa&shape3Color=93c5fd";
 
-// All seed contributors collapse to the single Helix Team avatar. The
+// All seed contributors collapse to the single Simedo Team avatar. The
 // parameter is accepted so callers that pass a name don't need to change.
 const avatar = (_seed: string): string => (void _seed, TEAM_AVATAR_URL);
 
 const pdbUrl = (id: string) => `https://files.rcsb.org/download/${id}.pdb`;
 
 const HELIX_TEAM: SimulationAuthor = {
-  name: "Helix Team",
+  name: "Simedo Team",
   username: "helix-team",
   avatarUrl: avatar("helix-team"),
 };
 
-// Every reference simulation is attributed to a single Helix Team
+// Every reference simulation is attributed to a single Simedo Team
 // account — no fictional researchers. Real users replace these as they
 // upload their own work.
 const AUTHORS = new Proxy({} as Record<string, SimulationAuthor>, {

@@ -5,7 +5,7 @@ import { DOC_SECTIONS } from "@/components/docs/docs-config";
 export const metadata = {
   title: "Docs",
   description:
-    "Documentation for Helix: uploading, supported formats, the AI guide, embedding, and the API.",
+    "Documentation for Simedo: uploading, supported formats, the AI guide, embedding, and the API.",
 };
 
 export default function DocsOverviewPage() {
@@ -13,13 +13,13 @@ export default function DocsOverviewPage() {
     <div className="flex flex-col gap-12">
       <header className="flex flex-col gap-4">
         <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          Helix documentation
+          Simedo documentation
         </span>
         <h1 className="text-4xl font-medium tracking-[-0.02em] sm:text-5xl">
           Everything you need to share simulations.
         </h1>
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
-          Helix is a platform for molecular dynamics trajectories — uploading
+          Simedo is a platform for molecular dynamics trajectories — uploading
           one, exploring one someone else uploaded, asking an AI guide what
           you&apos;re looking at, and embedding a viewer anywhere on the web.
           These pages are the reference for all of that.

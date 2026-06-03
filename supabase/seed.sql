@@ -1,10 +1,10 @@
--- Seed data: one Helix Team account that owns the 17 reference simulations.
+-- Seed data: one Simedo Team account that owns the 17 reference simulations.
 -- We chose a single curator over inventing fictional researchers — the
 -- platform stays populated without claiming users it doesn't have.
 -- Run after migrations.
 
 -- ============================================================================
--- Helix Team auth account. Password intentionally not set; this account
+-- Simedo Team auth account. Password intentionally not set; this account
 -- can't be logged into. It exists so the reference simulations have an
 -- author record to FK against until real users upload their own work.
 -- ============================================================================
@@ -12,13 +12,13 @@ insert into auth.users (id, email, raw_user_meta_data, created_at, email_confirm
 values
   ('00000000-0000-0000-0000-000000000001',
    'team@helix.example',
-   '{"username":"helix-team","display_name":"Helix Team","is_seed":true}'::jsonb,
+   '{"username":"helix-team","display_name":"Simedo Team","is_seed":true}'::jsonb,
    '2025-09-01', '2025-09-01')
 on conflict (id) do nothing;
 
 -- handle_new_auth_user trigger already created the public.users row.
 update public.users set
-  bio = 'Reference structures curated by the Helix team. Browse to explore — upload your own simulation to claim a real profile.',
+  bio = 'Reference structures curated by the Simedo team. Browse to explore — upload your own simulation to claim a real profile.',
   institution = null,
   is_verified_academic = false,
   avatar_url = 'https://api.dicebear.com/9.x/shapes/svg?seed=helix-team&backgroundColor=0a1437&shape1Color=2563eb&shape2Color=60a5fa&shape3Color=93c5fd'

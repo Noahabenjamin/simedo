@@ -6,7 +6,7 @@ import { isDbAvailable } from "@/lib/data/db-available";
 export const metadata = {
   title: "Upload simulation",
   description:
-    "Share a molecular dynamics simulation with the Helix community.",
+    "Share a molecular dynamics simulation with the Simedo community.",
 };
 
 export default function UploadPage() {
@@ -24,7 +24,7 @@ export default function UploadPage() {
           Upload simulation
         </h1>
         <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Share a molecular dynamics trajectory with the Helix community.
+          Share a molecular dynamics trajectory with the Simedo community.
           Supported formats are XTC, DCD, TRR for trajectories, and PDB, GRO,
           PSF for topologies.
         </p>

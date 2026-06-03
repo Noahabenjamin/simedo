@@ -13,7 +13,7 @@ export default function Page() {
     <DocPage
       eyebrow="Exploring simulations"
       title="Embedding"
-      lede="Drop a live Helix viewer into a paper, a slide deck, a blog post, or a course page. The embed is a real viewer — interactive, with the same controls as the full page."
+      lede="Drop a live Simedo viewer into a paper, a slide deck, a blog post, or a course page. The embed is a real viewer — interactive, with the same controls as the full page."
       href="/docs/embedding"
     >
       <DocH2>The iframe</DocH2>

@@ -1,9 +1,9 @@
 // PLACEHOLDER — replace the body with Noah's real story before launch.
 
 export const metadata = {
-  title: "About Helix",
+  title: "About Simedo",
   description:
-    "Helix is an open platform for sharing molecular dynamics simulations.",
+    "Simedo is an open platform for sharing molecular dynamics simulations.",
 };
 
 export default function AboutPage() {
@@ -11,7 +11,7 @@ export default function AboutPage() {
     <div className="mx-auto w-full max-w-3xl px-4 py-16 sm:px-6 lg:py-24">
       <header className="mb-12 flex flex-col gap-4">
         <h1 className="text-4xl font-medium tracking-[-0.02em] text-foreground sm:text-5xl">
-          About Helix
+          About Simedo
         </h1>
         <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
           A home for molecular dynamics simulations. Built for scientists,
@@ -22,7 +22,7 @@ export default function AboutPage() {
       <article className="prose prose-neutral flex max-w-none flex-col gap-6 text-base leading-relaxed text-foreground/90">
         <p>
           {/* TODO(noah): replace this paragraph with your real founder story. */}
-          Helix started from a simple frustration: the most beautiful science
+          Simedo started from a simple frustration: the most beautiful science
           of our time — the atomic motions of proteins, DNA, drugs binding to
           their targets — sits locked inside academic supercomputers,
           impossible for most people to see. Existing tools are powerful but
@@ -36,7 +36,7 @@ export default function AboutPage() {
           what other groups around the world are doing this week.
         </p>
 
-        <p>That place is Helix.</p>
+        <p>That place is Simedo.</p>
 
         <h2 className="mt-8 text-2xl font-medium tracking-[-0.02em] text-foreground">
           The vision
@@ -53,7 +53,7 @@ export default function AboutPage() {
         </h2>
         <p>
           {/* TODO(noah): a paragraph about you, what brings you to this problem. */}
-          Helix is built by a small team that cares about the intersection of
+          Simedo is built by a small team that cares about the intersection of
           science and design. We&apos;re based in Europe and we&apos;re open to
           collaborators.
         </p>

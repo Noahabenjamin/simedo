@@ -7,7 +7,7 @@ export function ConfigureSupabase() {
     <AuthLayout title="Authentication isn't configured yet">
       <div className="flex flex-col gap-4 text-sm text-muted-foreground">
         <p>
-          Helix uses Supabase for auth. To enable sign-in locally, set
+          Simedo uses Supabase for auth. To enable sign-in locally, set
           these in <code className="font-mono text-foreground">.env.local</code>:
         </p>
         <pre className="overflow-x-auto rounded-md border border-border bg-muted px-3 py-2 text-xs">

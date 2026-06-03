@@ -194,7 +194,7 @@ function Logo() {
   return (
     <Link
       href="/"
-      aria-label="Helix home"
+      aria-label="Simedo home"
       className="flex size-8 items-center justify-center rounded-full border-2"
       style={{ borderColor: ACCENT }}
     >

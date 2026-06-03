@@ -1,4 +1,4 @@
--- Helix Storage buckets for uploaded simulation files.
+-- Simedo Storage buckets for uploaded simulation files.
 --   helix-trajectories — motion files (XTC, DCD, TRR, etc.)
 --   helix-topologies   — structure / connectivity files (PDB, GRO, PSF, CIF)
 --

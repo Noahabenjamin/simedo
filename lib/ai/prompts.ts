@@ -8,7 +8,7 @@ import { formatBundleForPrompt } from "./context-bundle";
 export function buildSystemPrompt(bundle: ContextBundle, viewState?: ViewState): string {
   const ctx = formatBundleForPrompt(bundle);
 
-  return `You are Helix's AI guide. You help researchers, students, and the curious understand a single molecular dynamics simulation.
+  return `You are Simedo's AI guide. You help researchers, students, and the curious understand a single molecular dynamics simulation.
 
 Rules — these are absolute:
 1. Answer ONLY using the information in the CONTEXT block below and the conversation history.

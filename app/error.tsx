@@ -28,7 +28,7 @@ export default function GlobalError({
         500 · something broke
       </span>
       <h1 className="text-3xl font-medium tracking-[-0.02em] text-foreground sm:text-4xl">
-        Helix hit an error.
+        Simedo hit an error.
       </h1>
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
         We logged it. Try again, or head somewhere else. If this keeps
