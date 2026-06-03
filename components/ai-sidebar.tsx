@@ -317,6 +317,11 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
                 key={m.id}
                 message={m}
                 isLast={i === messages.length - 1}
+                isStreaming={
+                  isStreaming &&
+                  m.role === "assistant" &&
+                  i === messages.length - 1
+                }
                 sources={sources}
                 onReport={() => report(m.id)}
                 onOpenSources={() => setSourcesOpen(true)}
@@ -393,6 +398,7 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
 
 function MessageBubble({
   message,
+  isStreaming,
   sources,
   onReport,
   onOpenSources,
@@ -400,6 +406,7 @@ function MessageBubble({
 }: {
   message: ChatMessage;
   isLast: boolean;
+  isStreaming: boolean;
   sources: Source[];
   onReport: () => void;
   onOpenSources: () => void;
@@ -420,6 +427,12 @@ function MessageBubble({
         )}
       >
         {renderMessageBody(message.content, sources, onOpenSources)}
+        {isStreaming && (
+          <span
+            aria-hidden="true"
+            className="ml-1 inline-block size-1.5 -translate-y-px animate-pulse rounded-full bg-primary"
+          />
+        )}
       </div>
 
       {!isUser && message.toolCalls && message.toolCalls.length > 0 && (

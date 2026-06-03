@@ -60,7 +60,7 @@ export function AccountMenu({ viewer }: Props) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-background shadow-lg"
+          className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-border bg-background shadow-lg motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:slide-in-from-top-1 motion-safe:duration-150 origin-top-right"
         >
           <Link
             href={`/u/${viewer.username}`}

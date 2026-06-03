@@ -228,12 +228,12 @@ export function CommandPalette() {
       role="dialog"
       aria-modal="true"
       aria-label="Search"
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-foreground/30 px-4 pt-[10vh] backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-foreground/30 px-4 pt-[10vh] backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150"
       onClick={close}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl motion-safe:animate-in motion-safe:zoom-in-95 motion-safe:slide-in-from-top-4 motion-safe:duration-200"
       >
         <div className="flex items-center gap-3 border-b border-border px-4">
           <Search className="size-4 text-muted-foreground" />
