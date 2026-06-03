@@ -40,6 +40,7 @@ function mockProfileForTeam(): Profile {
     isSeed: true,
     createdAt: "2025-09-01T00:00:00Z",
     simulationCount: mockSimulations.length,
+    likeCount: 0,
     followerCount: 0,
     followingCount: 0,
   };
@@ -64,12 +65,16 @@ export async function getProfileByUsername(
 
   if (error || !data) return null;
 
-  const [simCount, followers, following] = await Promise.all([
+  const [simCount, likeCount, followers, following] = await Promise.all([
     supabase
       .from("simulations")
       .select("id", { count: "exact", head: true })
       .eq("user_id", data.id)
       .eq("visibility", "public"),
+    supabase
+      .from("likes")
+      .select("user_id", { count: "exact", head: true })
+      .eq("user_id", data.id),
     supabase
       .from("follows")
       .select("follower_id", { count: "exact", head: true })
@@ -92,6 +97,7 @@ export async function getProfileByUsername(
     isSeed: data.id === SEED_USER_ID,
     createdAt: data.created_at,
     simulationCount: simCount.count ?? 0,
+    likeCount: likeCount.count ?? 0,
     followerCount: followers.count ?? 0,
     followingCount: following.count ?? 0,
   };

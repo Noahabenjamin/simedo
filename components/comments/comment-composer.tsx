@@ -93,6 +93,14 @@ export function CommentComposer({
         name="body"
         value={body}
         onChange={(e) => setBody(e.target.value)}
+        onKeyDown={(e) => {
+          // Cmd/Ctrl + Enter posts. Plain Enter still inserts a newline so
+          // multiline comments are easy to write.
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            formRef.current?.requestSubmit();
+          }
+        }}
         placeholder={placeholder}
         required
         maxLength={5000}
@@ -164,7 +172,7 @@ export function CommentComposer({
 
       <p className="text-[10px] text-muted-foreground">
         Click an atom in the viewer to attach a residue, or scrub to a frame
-        and tap Attach frame.
+        and tap Attach frame. <span className="font-mono">⌘↵</span> to post.
       </p>
     </form>
   );

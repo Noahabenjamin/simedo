@@ -35,6 +35,7 @@ export type Profile = {
   isSeed: boolean;
   createdAt: string;
   simulationCount: number;
+  likeCount: number;
   followerCount: number;
   followingCount: number;
 };

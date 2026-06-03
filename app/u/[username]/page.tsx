@@ -129,17 +129,28 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       >
         {TABS.map((t) => {
           const active = t === tab;
+          const count =
+            t === "simulations"
+              ? profile.simulationCount
+              : t === "likes"
+                ? profile.likeCount
+                : null;
           return (
             <Link
               key={t}
               href={`/u/${profile.username}${t === "simulations" ? "" : `?tab=${t}`}`}
-              className={`relative -mb-px border-b-2 pb-3 text-sm capitalize transition-colors ${
+              className={`relative -mb-px flex items-center gap-1.5 border-b-2 pb-3 text-sm capitalize transition-colors ${
                 active
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t}
+              <span>{t}</span>
+              {count !== null && count > 0 && (
+                <span className="rounded-full bg-muted px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+                  {count}
+                </span>
+              )}
             </Link>
           );
         })}
