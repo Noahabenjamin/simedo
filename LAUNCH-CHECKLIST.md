@@ -1,4 +1,4 @@
-# Helix — pre-launch checklist
+# Simedo — pre-launch checklist
 
 Status legend: ✅ done · 🟡 half-done · 🔴 not done · ⚪ optional
 
@@ -25,7 +25,7 @@ Status legend: ✅ done · 🟡 half-done · 🔴 not done · ⚪ optional
 - 🔴 Storage bucket `pdbs` (public, 10 MB limit) — create in Storage UI
 - 🔴 Auth → Providers: enable Email + Google. Paste Google OAuth client id/secret
 - 🔴 Auth → URL Configuration: set Site URL = `https://simedo.work`; add redirect URLs `https://simedo.work/auth/callback`
-- 🔴 Auth → Email Templates: customize the four transactional emails (Confirm signup, Magic link, Password reset, Email change) with Helix branding
+- 🔴 Auth → Email Templates: customize the four transactional emails (Confirm signup, Magic link, Password reset, Email change) with Simedo branding
 - 🔴 Database → Backups: confirm daily backups are on (paid tier only)
 - 🔴 Realtime: enabled by default in new projects — verify under Database → Realtime
 
@@ -48,7 +48,7 @@ Status legend: ✅ done · 🟡 half-done · 🔴 not done · ⚪ optional
 - ✅ 17 seed simulations + 12 fake academics in `supabase/seed.sql`
 - 🔴 Create a real "Noah" account post-deploy; assign its username to `ADMIN_USERNAMES`
 - 🔴 Upload at least 3 real simulations under your own account so the homepage doesn't look entirely seeded
-- 🔴 Send 10 personal invites with a one-line note: what Helix is and what you'd like feedback on
+- 🔴 Send 10 personal invites with a one-line note: what Simedo is and what you'd like feedback on
 
 ## 6. Manual tests before going public
 
@@ -69,10 +69,10 @@ Status legend: ✅ done · 🟡 half-done · 🔴 not done · ⚪ optional
 
 Supabase Auth's default emails work but say "Supabase". Customize all four under Auth → Email Templates:
 
-- 🔴 **Confirm signup** — "Welcome to Helix. Confirm your email to start sharing simulations."
+- 🔴 **Confirm signup** — "Welcome to Simedo. Confirm your email to start sharing simulations."
 - 🔴 **Magic link** — not used (we use password + Google), but customize anyway in case enabled later
-- 🔴 **Password reset** — "Reset your Helix password"
-- 🔴 **Email change** — "Confirm your new Helix email"
+- 🔴 **Password reset** — "Reset your Simedo password"
+- 🔴 **Email change** — "Confirm your new Simedo email"
 
 Use the brand color `#0A7C5C` in the email button styles.
 
@@ -97,11 +97,11 @@ Drafts below — tighten before posting. None will land unless the product works
 
 ### Hacker News (Show HN)
 
-> **Show HN: Helix — a YouTube for molecular dynamics simulations**
+> **Show HN: Simedo — a YouTube for molecular dynamics simulations**
 >
-> Hi HN, I'm Noah. I built Helix because the most beautiful science of our time — proteins moving, DNA twisting, drugs binding — sits in command-line tools that ~nobody outside the field can use.
+> Hi HN, I'm Noah. I built Simedo because the most beautiful science of our time — proteins moving, DNA twisting, drugs binding — sits in command-line tools that ~nobody outside the field can use.
 >
-> Helix is a web platform where researchers share their MD simulations, anyone can watch them in 3D, and an AI guide explains what you're looking at — but only from public sources (RCSB, UniProt, the paper). Every answer cites.
+> Simedo is a web platform where researchers share their MD simulations, anyone can watch them in 3D, and an AI guide explains what you're looking at — but only from public sources (RCSB, UniProt, the paper). Every answer cites.
 >
 > Tech: Next.js, NGL Viewer, Supabase, Claude. Free for browsing. Open beta.
 >
@@ -116,7 +116,7 @@ Drafts below — tighten before posting. None will land unless the product works
 
 > **A web platform for sharing molecular dynamics trajectories — looking for feedback before public launch**
 >
-> Hey all — I've been building Helix for the past few months. It's a place to upload your MD simulations and share them with a link, similar to how Sketchfab does for 3D models. Every simulation has a 3D viewer and an AI guide trained to only answer from public databases (RCSB, UniProt, papers).
+> Hey all — I've been building Simedo for the past few months. It's a place to upload your MD simulations and share them with a link, similar to how Sketchfab does for 3D models. Every simulation has a 3D viewer and an AI guide trained to only answer from public databases (RCSB, UniProt, papers).
 >
 > Soft launching with 50 invited people next week. If you'd like to be one of them, comment or DM and I'll send a link.
 

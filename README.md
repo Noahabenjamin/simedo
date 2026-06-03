@@ -1,4 +1,4 @@
-# Helix
+# Simedo
 
 A platform for sharing molecular dynamics simulations. Next.js 16 + Supabase + Anthropic.
 

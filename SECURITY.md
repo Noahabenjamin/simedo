@@ -1,4 +1,4 @@
-# Helix — security model
+# Simedo — security model
 
 This document describes the row-level security (RLS) policies on every table.
 Each policy is named in the migrations to make audit logs readable.
