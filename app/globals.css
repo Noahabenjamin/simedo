@@ -141,6 +141,13 @@
     @apply font-sans;
     /* Tighter default letter-spacing — feels more like a marketing site. */
     letter-spacing: -0.011em;
+    /* Smooth in-page anchor jumps (#discussion, etc.). */
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
   ::selection {
     background: var(--primary);

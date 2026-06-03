@@ -68,7 +68,8 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Open via Cmd-K / Ctrl-K, or via a custom window event from the header.
+  // Open via Cmd-K / Ctrl-K, "/" (when not typing in a form field), or
+  // via a custom window event from the header.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isModK =
@@ -76,6 +77,12 @@ export function CommandPalette() {
       if (isModK) {
         e.preventDefault();
         setOpen(true);
+        return;
+      }
+      if (e.key === "/" && !isTypingTarget(e.target)) {
+        e.preventDefault();
+        setOpen(true);
+        return;
       }
       if (e.key === "Escape") setOpen(false);
     };
@@ -289,6 +296,14 @@ export function CommandPalette() {
       </div>
     </div>
   );
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (target.isContentEditable) return true;
+  return false;
 }
 
 function EmptyHints({

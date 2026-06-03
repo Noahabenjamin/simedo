@@ -62,9 +62,14 @@ export function Header({ viewer }: Props) {
         >
           <Search className="size-4" />
           <span className="flex-1 text-left">Search simulations, people</span>
-          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-            ⌘K
-          </kbd>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              ⌘K
+            </kbd>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+              /
+            </kbd>
+          </span>
         </button>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-4">

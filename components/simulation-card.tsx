@@ -22,7 +22,7 @@ export function SimulationCard({ simulation }: Props) {
   } = simulation;
 
   return (
-    <article className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-foreground/30">
+    <article className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-3 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-foreground/30">
       <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted">
         <Image
           src={thumbnailUrl}
