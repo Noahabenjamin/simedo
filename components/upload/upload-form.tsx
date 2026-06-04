@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDropzone } from "react-dropzone";
 import {
   Check,
   FileUp,
@@ -18,36 +19,125 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
-import { createSimulationFromUpload } from "@/lib/upload-actions";
+import { reserveSimulation, finalizeTrajectory } from "@/lib/upload-actions";
 import { sniffFile } from "@/lib/upload/magic-bytes";
 
-const CATEGORIES = [
-  { id: "protein", label: "Protein dynamics" },
-  { id: "nucleic", label: "Nucleic acid" },
-  { id: "ligand", label: "Ligand binding" },
-  { id: "membrane", label: "Membrane / lipid" },
-  { id: "small", label: "Small molecule" },
-  { id: "other", label: "Other" },
+// Single-page upload form. The two heavy moves happen client-side after
+// the server action returns:
+//   1. PUT the PDB file directly into Supabase Storage (small enough).
+//   2. PUT the trajectory directly into R2 via the presigned URL the
+//      server hands back (skips Vercel's 4.5 MB body limit).
+// Then we call finalizeTrajectory so the row flips to 'processing' and
+// the Python compression endpoint takes over.
+
+type Defaults = {
+  email: string;
+  institution: string;
+  displayName: string;
+};
+
+const CATEGORY_OPTIONS = [
+  { value: "protein", label: "Protein" },
+  { value: "dna", label: "DNA" },
+  { value: "rna", label: "RNA" },
+  { value: "membrane", label: "Membrane / lipid" },
+  { value: "drug-complex", label: "Drug complex" },
+  { value: "enzyme", label: "Enzyme" },
+  { value: "antibody", label: "Antibody" },
+  { value: "receptor", label: "Receptor" },
 ] as const;
+
+const EXPERIMENT_OPTIONS = [
+  { value: "equilibrium", label: "Equilibrium" },
+  { value: "steered", label: "Steered MD" },
+  { value: "free-energy", label: "Free energy" },
+  { value: "binding", label: "Binding" },
+  { value: "folding", label: "Folding" },
+] as const;
+
+const SOFTWARE_OPTIONS = [
+  "GROMACS",
+  "AMBER",
+  "NAMD",
+  "OpenMM",
+  "CHARMM",
+  "Desmond",
+  "LAMMPS",
+  "Other",
+];
 
 const LICENSES = [
-  { id: "cc-by-4", label: "CC BY 4.0", hint: "Reuse with attribution" },
+  { id: "cc-by", label: "CC BY 4.0", hint: "Reuse with attribution" },
+  { id: "cc-by-sa", label: "CC BY-SA 4.0", hint: "Share-alike" },
   { id: "cc0", label: "CC0", hint: "Public domain" },
-  { id: "cc-by-nc", label: "CC BY-NC 4.0", hint: "Non-commercial" },
-  { id: "custom", label: "Custom", hint: "Specify in description" },
+  {
+    id: "all-rights-reserved",
+    label: "All rights reserved",
+    hint: "Read-only on Simedo",
+  },
 ] as const;
 
-const TRAJECTORY_EXTS = [".xtc", ".dcd", ".trr", ".nc", ".lh5"];
-const TOPOLOGY_EXTS = [".pdb", ".gro", ".psf", ".prmtop", ".top", ".cif"];
+const TRAJECTORY_EXTS = [".xtc", ".dcd", ".trr", ".nc", ".pdb"];
+const TOPOLOGY_EXTS = [".pdb", ".cif", ".gro", ".psf"];
 
-const TRAJECTORY_MAX_BYTES = 100 * 1024 * 1024; // 100 MB
-const TOPOLOGY_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+const TRAJECTORY_MAX_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB raw
+const PDB_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
-const DRAFT_KEY = "helix-upload-draft-v1";
+const DRAFT_KEY = "simedo-upload-draft-v2";
 
-type Category = (typeof CATEGORIES)[number]["id"];
-type License = (typeof LICENSES)[number]["id"];
-type Visibility = "public" | "unlisted" | "private";
+type Draft = {
+  title: string;
+  description: string;
+  pdb_code: string;
+  category: (typeof CATEGORY_OPTIONS)[number]["value"];
+  experiment_type: (typeof EXPERIMENT_OPTIONS)[number]["value"];
+  software: string;
+  software_version: string;
+  force_field_full: string;
+  water_model: string;
+  temperature_k: string;
+  pressure_bar: string;
+  ph: string;
+  ionic_strength_mm: string;
+  length_ns: string;
+  simulation_lab: string;
+  simulation_institution: string;
+  corresponding_author: string;
+  corresponding_author_email: string;
+  data_origin: "original" | "reupload_with_permission" | "public_repository";
+  original_source_url: string;
+  source_doi: string;
+  license: string;
+  visibility: "public" | "unlisted" | "private";
+};
+
+function emptyDraft(d: Defaults): Draft {
+  return {
+    title: "",
+    description: "",
+    pdb_code: "",
+    category: "protein",
+    experiment_type: "equilibrium",
+    software: "GROMACS",
+    software_version: "",
+    force_field_full: "",
+    water_model: "",
+    temperature_k: "",
+    pressure_bar: "",
+    ph: "",
+    ionic_strength_mm: "",
+    length_ns: "",
+    simulation_lab: "",
+    simulation_institution: d.institution,
+    corresponding_author: d.displayName,
+    corresponding_author_email: d.email,
+    data_origin: "original",
+    original_source_url: "",
+    source_doi: "",
+    license: "cc-by",
+    visibility: "public",
+  };
+}
 
 function fileExt(name: string): string {
   const i = name.lastIndexOf(".");
@@ -62,61 +152,44 @@ function humanSize(bytes: number): string {
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-type Draft = {
-  name: string;
-  description: string;
-  category: Category;
-  tags: string;
-  license: License;
-  visibility: Visibility;
-  pdbCode: string;
+type Props = {
+  defaults: Defaults;
 };
 
-const EMPTY_DRAFT: Draft = {
-  name: "",
-  description: "",
-  category: "protein",
-  tags: "",
-  license: "cc-by-4",
-  visibility: "public",
-  pdbCode: "",
-};
-
-export function UploadForm() {
+export function UploadForm({ defaults }: Props) {
   const router = useRouter();
-  const [trajectoryFile, setTrajectoryFile] = useState<File | null>(null);
+  const [draft, setDraft] = useState<Draft>(() => emptyDraft(defaults));
   const [topologyFile, setTopologyFile] = useState<File | null>(null);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [trajectoryFile, setTrajectoryFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [progress, setProgress] = useState<{ uploaded: number; total: number } | null>(
-    null,
-  );
+  const [progress, setProgress] = useState<{
+    label: string;
+    uploaded: number;
+    total: number;
+    bps: number;
+  } | null>(null);
   const hydratedRef = useRef(false);
 
-  // Hydrate from localStorage on mount. Intentionally deferred to an
-  // effect so server and client render the same initial state — the
-  // alternative (read in useState initializer) causes a hydration
-  // mismatch when the user has a stored draft.
+  // Hydrate from sessionStorage so a failed upload doesn't lose progress.
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = sessionStorage.getItem(DRAFT_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Draft>;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setDraft((d) => ({ ...d, ...parsed }));
       }
     } catch {
-      /* draft corrupt — ignore */
+      /* ignore */
     }
   }, []);
 
-  // Persist draft on every change (text-only; files aren't serializable).
   useEffect(() => {
     if (!hydratedRef.current) return;
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       /* quota / private mode — best effort */
     }
@@ -128,34 +201,12 @@ export function UploadForm() {
     [],
   );
 
-  const tagList = useMemo(
-    () =>
-      draft.tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-    [draft.tags],
-  );
-
-  const trajectoryValid =
-    !!trajectoryFile &&
-    TRAJECTORY_EXTS.includes(fileExt(trajectoryFile.name)) &&
-    trajectoryFile.size <= TRAJECTORY_MAX_BYTES;
-  const topologyValid =
-    !topologyFile ||
-    (TOPOLOGY_EXTS.includes(fileExt(topologyFile.name)) &&
-      topologyFile.size <= TOPOLOGY_MAX_BYTES);
-  const hasStructure =
-    /^[a-z0-9]{4}$/i.test(draft.pdbCode.trim()) || !!topologyFile;
-  const formValid =
-    hasStructure && draft.name.trim().length >= 3 && topologyValid;
-
   const trajectoryWarn = (() => {
     if (!trajectoryFile) return null;
     if (!TRAJECTORY_EXTS.includes(fileExt(trajectoryFile.name)))
       return `Unsupported extension ${fileExt(trajectoryFile.name)}`;
     if (trajectoryFile.size > TRAJECTORY_MAX_BYTES)
-      return `${humanSize(trajectoryFile.size)} exceeds the 100 MB cap`;
+      return `${humanSize(trajectoryFile.size)} exceeds the 2 GB cap`;
     return null;
   })();
 
@@ -163,10 +214,25 @@ export function UploadForm() {
     if (!topologyFile) return null;
     if (!TOPOLOGY_EXTS.includes(fileExt(topologyFile.name)))
       return `Unsupported extension ${fileExt(topologyFile.name)}`;
-    if (topologyFile.size > TOPOLOGY_MAX_BYTES)
-      return `${humanSize(topologyFile.size)} exceeds the 25 MB cap`;
+    if (topologyFile.size > PDB_MAX_BYTES)
+      return `${humanSize(topologyFile.size)} exceeds the 10 MB cap`;
     return null;
   })();
+
+  const hasStructure =
+    /^[a-z0-9]{4}$/i.test(draft.pdb_code.trim()) || !!topologyFile;
+  const reuploadRequiresUrl =
+    draft.data_origin === "original" || !!draft.original_source_url.trim();
+  const formValid =
+    hasStructure &&
+    !trajectoryWarn &&
+    !topologyWarn &&
+    draft.title.trim().length >= 3 &&
+    draft.simulation_lab.trim().length > 0 &&
+    draft.simulation_institution.trim().length > 0 &&
+    draft.corresponding_author.trim().length > 0 &&
+    /\S+@\S+\.\S+/.test(draft.corresponding_author_email) &&
+    reuploadRequiresUrl;
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -177,30 +243,19 @@ export function UploadForm() {
 
       const sb = getBrowserSupabase();
       if (!sb) {
-        toast.error("Upload backend not configured", {
-          description:
-            "Set NEXT_PUBLIC_SUPABASE_URL and the matching anon key, then run the storage-buckets migration.",
-        });
+        toast.error("Upload backend not configured");
         setSubmitting(false);
-        return;
-      }
-
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
-      if (!user) {
-        toast.error("Sign in to upload");
-        setSubmitting(false);
-        router.push("/sign-in?redirect=/upload");
         return;
       }
 
       try {
-        // Magic-byte sniff before we waste bytes on Storage.
+        // Magic-byte sniff up front so we never burn an R2 PUT on garbage.
         if (topologyFile) {
           const sniff = await sniffFile(topologyFile, "structure");
           if (sniff.verdict === "wrong-format") {
-            toast.error("Topology file looks wrong", { description: sniff.reason });
+            toast.error("Topology file looks wrong", {
+              description: sniff.reason,
+            });
             setSubmitting(false);
             return;
           }
@@ -208,74 +263,94 @@ export function UploadForm() {
         if (trajectoryFile) {
           const sniff = await sniffFile(trajectoryFile, "trajectory");
           if (sniff.verdict === "wrong-format") {
-            toast.error("Trajectory file looks wrong", { description: sniff.reason });
+            toast.error("Trajectory file looks wrong", {
+              description: sniff.reason,
+            });
             setSubmitting(false);
             return;
           }
         }
 
-        let trajectoryStoragePath: string | null = null;
-        let topologyStoragePath: string | null = null;
-
+        // Build the FormData for the reserveSimulation action.
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(draft)) {
+          if (v != null) fd.set(k, String(v));
+        }
         if (trajectoryFile) {
-          setProgress({ uploaded: 0, total: trajectoryFile.size });
-          const name = `${Date.now()}-${sanitizeFileName(trajectoryFile.name)}`;
-          const path = `${user.id}/${name}`;
-          const { error } = await sb.storage
-            .from("helix-trajectories")
-            .upload(path, trajectoryFile, {
-              contentType: trajectoryFile.type || "application/octet-stream",
-              upsert: false,
-            });
-          if (error) throw error;
-          trajectoryStoragePath = path;
-          setProgress({
-            uploaded: trajectoryFile.size,
-            total: trajectoryFile.size,
-          });
+          fd.set("trajectory_filename", trajectoryFile.name);
+          fd.set("trajectory_size_bytes", String(trajectoryFile.size));
         }
 
-        if (topologyFile) {
-          const name = `${Date.now()}-${sanitizeFileName(topologyFile.name)}`;
-          const path = `${user.id}/${name}`;
-          const { error } = await sb.storage
-            .from("helix-topologies")
-            .upload(path, topologyFile, {
-              contentType: topologyFile.type || "application/octet-stream",
-              upsert: false,
-            });
-          if (error) throw error;
-          topologyStoragePath = path;
-        }
-
-        const result = await createSimulationFromUpload({
-          title: draft.name.trim(),
-          description: draft.description.trim(),
-          category: draft.category,
-          tags: tagList,
-          license: draft.license,
-          visibility: draft.visibility,
-          pdbCode: draft.pdbCode.trim() || null,
-          trajectoryStoragePath,
-          trajectorySizeBytes: trajectoryFile?.size ?? null,
-          topologyStoragePath,
-        });
-
-        if ("error" in result) {
-          toast.error("Couldn't create the simulation", {
-            description: result.error,
+        const reserved = await reserveSimulation(fd);
+        if (!reserved.ok) {
+          toast.error("Couldn't reserve simulation", {
+            description: reserved.error,
           });
+          setSubmitting(false);
           return;
         }
 
-        // Clear the draft and route to the new simulation page.
+        // Topology → Supabase Storage (10 MB cap, well under Vercel's
+        // 4.5 MB body limit if proxied, but we go direct anyway).
+        if (topologyFile) {
+          setProgress({
+            label: "Uploading structure",
+            uploaded: 0,
+            total: topologyFile.size,
+            bps: 0,
+          });
+          const { error } = await sb.storage
+            .from("pdbs")
+            .upload(`${reserved.simulationId}.pdb`, topologyFile, {
+              contentType: "chemical/x-pdb",
+              upsert: false,
+            });
+          if (error) throw new Error(`Topology upload: ${error.message}`);
+          setProgress({
+            label: "Uploading structure",
+            uploaded: topologyFile.size,
+            total: topologyFile.size,
+            bps: 0,
+          });
+        }
+
+        // Trajectory → R2 via presigned PUT, with progress + speed.
+        if (trajectoryFile && reserved.trajectoryPresign) {
+          await putWithProgress(
+            reserved.trajectoryPresign.url,
+            trajectoryFile,
+            (uploaded, total, bps) => {
+              setProgress({
+                label: "Uploading trajectory",
+                uploaded,
+                total,
+                bps,
+              });
+            },
+          );
+        }
+
+        // Tell the server the bytes are in place.
+        const finalRes = await finalizeTrajectory({
+          simulationId: reserved.simulationId,
+          trajectoryKey: reserved.trajectoryPresign?.key ?? null,
+          trajectorySizeBytes: trajectoryFile?.size ?? null,
+        });
+        if (!finalRes.ok) {
+          toast.error("Couldn't finalize", {
+            description: finalRes.error,
+          });
+          setSubmitting(false);
+          return;
+        }
+
         try {
-          localStorage.removeItem(DRAFT_KEY);
+          sessionStorage.removeItem(DRAFT_KEY);
         } catch {
           /* ignore */
         }
-        toast.success("Simulation uploaded");
-        router.push(`/simulation/${result.id}`);
+        toast.success("Simulation published");
+        router.push(`/simulation/${reserved.simulationId}`);
       } catch (err) {
         toast.error("Upload failed", {
           description: err instanceof Error ? err.message : "Unknown error",
@@ -285,246 +360,383 @@ export function UploadForm() {
         setProgress(null);
       }
     },
-    [
-      formValid,
-      submitting,
-      trajectoryFile,
-      topologyFile,
-      draft,
-      tagList,
-      router,
-    ],
+    [draft, formValid, submitting, topologyFile, trajectoryFile, router],
   );
 
   return (
-    <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
-      {/* PDB code or topology */}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-10">
       <Section
-        title="Structure"
-        hint="Reference structure for the viewer. PDB code or a topology file."
-        valid={hasStructure}
+        title="Basic info"
+        hint="Title + a short description so people can find it."
       >
-        <div className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">PDB code</span>
-            <Input
-              value={draft.pdbCode}
-              onChange={(e) => set("pdbCode", e.target.value.trim())}
-              placeholder="e.g. 1HHO"
-              maxLength={4}
-              className="font-mono uppercase"
-            />
-            <span className="text-[10px] text-muted-foreground">
-              We&apos;ll fetch the PDB from RCSB automatically.
-            </span>
-          </label>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            <span>or attach a topology file</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <FileDrop
-            file={topologyFile}
-            onFile={setTopologyFile}
-            accept={TOPOLOGY_EXTS}
-            label="Drag a topology file here"
-            sublabel={TOPOLOGY_EXTS.join(" · ")}
-            optional
-            warn={topologyWarn}
-          />
-        </div>
-      </Section>
-
-      {/* Trajectory drop zone */}
-      <Section
-        title="Trajectory"
-        hint="The motion data. Optional — structure-only uploads are fine."
-        valid={!trajectoryFile || trajectoryValid}
-        warn={trajectoryWarn}
-      >
-        <FileDrop
-          file={trajectoryFile}
-          onFile={setTrajectoryFile}
-          accept={TRAJECTORY_EXTS}
-          label="Drag a trajectory file here"
-          sublabel={`${TRAJECTORY_EXTS.join(" · ")} · up to 100 MB`}
-          optional
-          warn={trajectoryWarn}
-        />
-      </Section>
-
-      {/* Name + description */}
-      <Section title="Details" hint="What you're sharing.">
         <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">Name</span>
+          <Label label="Title" required>
             <Input
+              value={draft.title}
+              onChange={(e) => set("title", e.target.value)}
+              maxLength={200}
+              placeholder="e.g. β2 adrenergic receptor 1 μs at 310 K"
               required
-              value={draft.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="e.g. Spike protein RBD with ACE2"
-              maxLength={120}
+              className="h-11"
             />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">Description</span>
+          </Label>
+          <Label
+            label="PDB code"
+            hint="Optional. If filled, we'll fetch the structure from RCSB automatically."
+          >
+            <Input
+              value={draft.pdb_code}
+              onChange={(e) => set("pdb_code", e.target.value.trim())}
+              maxLength={4}
+              className="h-11 font-mono uppercase"
+              placeholder="3SN6"
+            />
+          </Label>
+          <Label
+            label="Description"
+            hint="Markdown supported. What's interesting about this sim?"
+          >
             <Textarea
               value={draft.description}
               onChange={(e) => set("description", e.target.value)}
-              placeholder="Force field, integrator, conditions, simulation length, citations…"
-              rows={5}
+              rows={4}
+              maxLength={2000}
+              placeholder="Force field, conditions, what the trajectory shows…"
+              className="resize-y"
             />
-          </label>
-        </div>
-      </Section>
-
-      {/* Category */}
-      <Section title="Category" hint="Helps the right people find it.">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {CATEGORIES.map((c) => (
-            <button
-              type="button"
-              key={c.id}
-              onClick={() => set("category", c.id)}
-              className={cn(
-                "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                draft.category === c.id
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* Tags */}
-      <Section title="Tags" hint="Comma separated.">
-        <Input
-          value={draft.tags}
-          onChange={(e) => set("tags", e.target.value)}
-          placeholder="charmm36, gromacs, 500ns"
-        />
-        {tagList.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {tagList.map((t, i) => (
-              <span
-                key={`${t}-${i}`}
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-              >
-                <Tag className="size-3" />
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
-      </Section>
-
-      {/* License */}
-      <Section title="License">
-        <div className="flex flex-col gap-1.5">
-          {LICENSES.map((l) => (
-            <label
-              key={l.id}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
-                draft.license === l.id
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:bg-muted/50",
-              )}
-            >
-              <input
-                type="radio"
-                name="license"
-                value={l.id}
-                checked={draft.license === l.id}
-                onChange={() => set("license", l.id)}
-                className="mt-1 size-3.5 accent-primary"
+          </Label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Label label="Category" required>
+              <Select
+                value={draft.category}
+                onChange={(v) =>
+                  set("category", v as Draft["category"])
+                }
+                options={CATEGORY_OPTIONS}
               />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">
-                  {l.label}
-                </span>
-                <span className="text-xs text-muted-foreground">{l.hint}</span>
-              </div>
-            </label>
-          ))}
+            </Label>
+            <Label label="Experiment type" required>
+              <Select
+                value={draft.experiment_type}
+                onChange={(v) =>
+                  set("experiment_type", v as Draft["experiment_type"])
+                }
+                options={EXPERIMENT_OPTIONS}
+              />
+            </Label>
+          </div>
         </div>
       </Section>
 
-      {/* Visibility */}
-      <Section title="Visibility">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <VisibilityCard
-            icon={<Globe className="size-4" />}
-            label="Public"
-            hint="Anyone can find and view"
-            selected={draft.visibility === "public"}
-            onSelect={() => set("visibility", "public")}
+      <Section title="Files">
+        <div className="flex flex-col gap-4">
+          <FileDrop
+            label="Structure (.pdb or .cif)"
+            sublabel={`Up to 10 MB · ${TOPOLOGY_EXTS.join(" · ")}`}
+            accept={TOPOLOGY_EXTS}
+            file={topologyFile}
+            onFile={setTopologyFile}
+            warn={topologyWarn}
+            optional={!!draft.pdb_code.trim()}
+            optionalHint="Optional when a PDB code is set."
           />
-          <VisibilityCard
-            icon={<FileUp className="size-4" />}
-            label="Unlisted"
-            hint="Only people with the link"
-            selected={draft.visibility === "unlisted"}
-            onSelect={() => set("visibility", "unlisted")}
-          />
-          <VisibilityCard
-            icon={<Lock className="size-4" />}
-            label="Private"
-            hint="Only you and collaborators"
-            selected={draft.visibility === "private"}
-            onSelect={() => set("visibility", "private")}
+          <FileDrop
+            label="Trajectory"
+            sublabel={`Up to 2 GB · ${TRAJECTORY_EXTS.join(" · ")} · streams directly to R2`}
+            accept={TRAJECTORY_EXTS}
+            file={trajectoryFile}
+            onFile={setTrajectoryFile}
+            warn={trajectoryWarn}
+            optional
+            optionalHint="Optional. Without a trajectory, the page renders the static structure."
           />
         </div>
       </Section>
 
-      {/* Submit + progress */}
+      <Section
+        title="Provenance"
+        hint="Where this came from. Shown on the simulation page as a transparency signal."
+      >
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Label label="Software" required>
+              <Select
+                value={draft.software}
+                onChange={(v) => set("software", v)}
+                options={SOFTWARE_OPTIONS.map((s) => ({ value: s, label: s }))}
+              />
+            </Label>
+            <Label label="Version">
+              <Input
+                value={draft.software_version}
+                onChange={(e) => set("software_version", e.target.value)}
+                placeholder="e.g. 2023.5"
+                className="h-11"
+              />
+            </Label>
+            <Label label="Force field">
+              <Input
+                value={draft.force_field_full}
+                onChange={(e) => set("force_field_full", e.target.value)}
+                placeholder="e.g. AMBER ff14SB"
+                className="h-11"
+              />
+            </Label>
+            <Label label="Water model">
+              <Input
+                value={draft.water_model}
+                onChange={(e) => set("water_model", e.target.value)}
+                placeholder="e.g. TIP3P"
+                className="h-11"
+              />
+            </Label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+            <Label label="Temperature (K)">
+              <Input
+                type="number"
+                step="any"
+                value={draft.temperature_k}
+                onChange={(e) => set("temperature_k", e.target.value)}
+                className="h-11"
+              />
+            </Label>
+            <Label label="Pressure (bar)">
+              <Input
+                type="number"
+                step="any"
+                value={draft.pressure_bar}
+                onChange={(e) => set("pressure_bar", e.target.value)}
+                className="h-11"
+              />
+            </Label>
+            <Label label="pH">
+              <Input
+                type="number"
+                step="any"
+                value={draft.ph}
+                onChange={(e) => set("ph", e.target.value)}
+                className="h-11"
+              />
+            </Label>
+            <Label label="Ionic (mM)">
+              <Input
+                type="number"
+                step="any"
+                value={draft.ionic_strength_mm}
+                onChange={(e) =>
+                  set("ionic_strength_mm", e.target.value)
+                }
+                className="h-11"
+              />
+            </Label>
+            <Label label="Length (ns)">
+              <Input
+                type="number"
+                step="any"
+                value={draft.length_ns}
+                onChange={(e) => set("length_ns", e.target.value)}
+                className="h-11"
+              />
+            </Label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Label label="Lab / group" required>
+              <Input
+                value={draft.simulation_lab}
+                onChange={(e) => set("simulation_lab", e.target.value)}
+                placeholder="e.g. Shaw Lab"
+                className="h-11"
+                required
+              />
+            </Label>
+            <Label label="Institution" required>
+              <Input
+                value={draft.simulation_institution}
+                onChange={(e) =>
+                  set("simulation_institution", e.target.value)
+                }
+                className="h-11"
+                required
+              />
+            </Label>
+            <Label label="Corresponding author" required>
+              <Input
+                value={draft.corresponding_author}
+                onChange={(e) =>
+                  set("corresponding_author", e.target.value)
+                }
+                className="h-11"
+                required
+              />
+            </Label>
+            <Label label="Corresponding author email" required>
+              <Input
+                type="email"
+                value={draft.corresponding_author_email}
+                onChange={(e) =>
+                  set("corresponding_author_email", e.target.value)
+                }
+                className="h-11"
+                required
+              />
+            </Label>
+          </div>
+
+          <Label label="Data origin" required>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+              {(
+                [
+                  ["original", "Original — I ran this simulation"],
+                  ["reupload_with_permission", "Reupload with permission"],
+                  ["public_repository", "From a public repository"],
+                ] as const
+              ).map(([v, label]) => (
+                <label
+                  key={v}
+                  className={cn(
+                    "flex flex-1 cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 text-sm transition-colors",
+                    draft.data_origin === v
+                      ? "border-primary bg-primary/5 text-foreground"
+                      : "border-border hover:bg-muted/40",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="data_origin"
+                    checked={draft.data_origin === v}
+                    onChange={() => set("data_origin", v)}
+                    className="mt-1 size-3.5 accent-primary"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </Label>
+
+          {draft.data_origin !== "original" && (
+            <Label
+              label="Original source URL"
+              hint="DOI, paper page, or repository link. Required for reuploads."
+              required
+            >
+              <Input
+                value={draft.original_source_url}
+                onChange={(e) => set("original_source_url", e.target.value)}
+                placeholder="https://doi.org/…"
+                className="h-11"
+                required
+              />
+            </Label>
+          )}
+
+          <Label
+            label="Source DOI"
+            hint="If a paper or dataset goes with this simulation."
+          >
+            <Input
+              value={draft.source_doi}
+              onChange={(e) => set("source_doi", e.target.value)}
+              placeholder="10.1234/abc"
+              className="h-11 font-mono"
+            />
+          </Label>
+        </div>
+      </Section>
+
+      <Section title="License + visibility">
+        <div className="flex flex-col gap-4">
+          <Label label="License">
+            <div className="flex flex-col gap-1.5">
+              {LICENSES.map((l) => (
+                <label
+                  key={l.id}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+                    draft.license === l.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted/50",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="license"
+                    checked={draft.license === l.id}
+                    onChange={() => set("license", l.id)}
+                    className="mt-1 size-3.5 accent-primary"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">
+                      {l.label}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {l.hint}
+                    </span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </Label>
+          <Label label="Visibility">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <VisibilityCard
+                icon={<Globe className="size-4" />}
+                label="Public"
+                hint="Anyone can find and view"
+                selected={draft.visibility === "public"}
+                onSelect={() => set("visibility", "public")}
+              />
+              <VisibilityCard
+                icon={<FileUp className="size-4" />}
+                label="Unlisted"
+                hint="Only people with the link"
+                selected={draft.visibility === "unlisted"}
+                onSelect={() => set("visibility", "unlisted")}
+              />
+              <VisibilityCard
+                icon={<Lock className="size-4" />}
+                label="Private"
+                hint="Only you and collaborators"
+                selected={draft.visibility === "private"}
+                onSelect={() => set("visibility", "private")}
+              />
+            </div>
+          </Label>
+        </div>
+      </Section>
+
       <div className="flex flex-col gap-3 border-t border-border pt-6">
         {progress && (
-          <div className="flex flex-col gap-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Uploading trajectory</span>
-              <span className="font-mono">
-                {humanSize(progress.uploaded)} / {humanSize(progress.total)}
-              </span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-foreground transition-all duration-200"
-                style={{
-                  width:
-                    progress.total === 0
-                      ? "100%"
-                      : `${Math.min(100, (progress.uploaded / progress.total) * 100)}%`,
-                }}
-              />
-            </div>
-          </div>
+          <UploadProgress
+            label={progress.label}
+            uploaded={progress.uploaded}
+            total={progress.total}
+            bps={progress.bps}
+          />
         )}
-
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">
             {formValid ? (
               <span className="inline-flex items-center gap-1.5">
                 <Check className="size-3.5 text-emerald-500" />
-                Ready to upload
+                Ready to publish
               </span>
             ) : (
-              "Add a PDB code or topology, plus a name (3+ characters)."
+              "Fill in title, structure (PDB code or .pdb), lab, institution, author + email."
             )}
           </p>
           <Button type="submit" disabled={!formValid || submitting} size="lg">
             {submitting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Uploading
+                Publishing
               </>
             ) : (
               <>
                 <Upload className="size-4" />
-                Upload
+                Publish simulation
               </>
             )}
           </Button>
@@ -534,26 +746,15 @@ export function UploadForm() {
   );
 }
 
-function sanitizeFileName(name: string): string {
-  return name
-    .normalize("NFKD")
-    .replace(/[^a-zA-Z0-9._-]+/g, "_")
-    .slice(0, 200);
-}
-
-// ---------- Section wrapper -----------------------------------------------
+// ----- field helpers --------------------------------------------------------
 
 function Section({
   title,
   hint,
-  valid,
-  warn,
   children,
 }: {
   title: string;
   hint?: string;
-  valid?: boolean;
-  warn?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -561,19 +762,60 @@ function Section({
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium tracking-tight text-foreground">
           {title}
-          {valid && (
-            <Check className="ml-2 inline-block size-3.5 -translate-y-px text-emerald-500" />
-          )}
         </h2>
         {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
       </div>
       {children}
-      {warn && <p className="text-xs text-destructive">{warn}</p>}
     </section>
   );
 }
 
-// ---------- File drop zone ------------------------------------------------
+function Label({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs text-muted-foreground">
+        {label}
+        {required && <span className="ml-1 text-foreground">*</span>}
+      </span>
+      {children}
+      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+    </label>
+  );
+}
+
+function Select<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: readonly { value: T; label: string }[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as T)}
+      className="h-11 rounded-md border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-foreground/30"
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 function FileDrop({
   file,
@@ -582,6 +824,7 @@ function FileDrop({
   label,
   sublabel,
   optional,
+  optionalHint,
   warn,
 }: {
   file: File | null;
@@ -590,45 +833,35 @@ function FileDrop({
   label: string;
   sublabel: string;
   optional?: boolean;
+  optionalHint?: string;
   warn?: string | null;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [hover, setHover] = useState(false);
-
-  const onChooseClick = () => inputRef.current?.click();
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setHover(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) onFile(f);
-  };
+  const onDrop = useCallback(
+    (accepted: File[]) => {
+      if (accepted[0]) onFile(accepted[0]);
+    },
+    [onFile],
+  );
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: Object.fromEntries(accept.map((ext) => [`application/octet-stream`, [ext]])),
+  });
 
   return (
     <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setHover(true);
-      }}
-      onDragLeave={() => setHover(false)}
-      onDrop={onDrop}
-      className={cn(
-        "relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center transition-colors",
-        hover
-          ? "border-primary bg-primary/5"
-          : warn
-            ? "border-destructive/50 bg-destructive/5"
-            : "border-border bg-card hover:bg-muted/30",
-      )}
+      {...getRootProps({
+        className: cn(
+          "relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center transition-colors",
+          isDragActive
+            ? "border-primary bg-primary/5"
+            : warn
+              ? "border-destructive/50 bg-destructive/5"
+              : "border-border bg-card hover:bg-muted/30",
+        ),
+      })}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept.join(",")}
-        className="hidden"
-        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-      />
-
+      <input {...getInputProps()} />
       {file ? (
         <div className="flex w-full max-w-md flex-col items-center gap-1.5">
           <div className="flex items-center gap-2 font-mono text-sm text-foreground">
@@ -640,7 +873,10 @@ function FileDrop({
           </div>
           <button
             type="button"
-            onClick={() => onFile(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFile(null);
+            }}
             className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
             <X className="size-3" />
@@ -652,25 +888,24 @@ function FileDrop({
           <Upload className="size-5 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">{label}</p>
           <p className="text-xs text-muted-foreground">{sublabel}</p>
-          <button
-            type="button"
-            onClick={onChooseClick}
-            className="mt-2 text-xs font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Or choose a file
-          </button>
+          {optionalHint && (
+            <p className="text-[11px] italic text-muted-foreground">{optionalHint}</p>
+          )}
           {optional && (
             <span className="absolute right-3 top-3 rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
               Optional
             </span>
           )}
+          {warn && <p className="text-xs text-destructive">{warn}</p>}
+          <p className="mt-1 inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline">
+            Or click to choose a file
+            <Tag className="size-3" />
+          </p>
         </>
       )}
     </div>
   );
 }
-
-// ---------- Visibility card -----------------------------------------------
 
 function VisibilityCard({
   icon,
@@ -703,4 +938,73 @@ function VisibilityCard({
       <span className="text-xs text-muted-foreground">{hint}</span>
     </button>
   );
+}
+
+function UploadProgress({
+  label,
+  uploaded,
+  total,
+  bps,
+}: {
+  label: string;
+  uploaded: number;
+  total: number;
+  bps: number;
+}) {
+  const pct = total === 0 ? 100 : Math.min(100, (uploaded / total) * 100);
+  const etaSeconds = bps > 0 && uploaded < total ? Math.ceil((total - uploaded) / bps) : 0;
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{label}</span>
+        <span className="font-mono tabular-nums">
+          {humanSize(uploaded)} / {humanSize(total)}
+          {bps > 0 && ` · ${humanSize(bps)}/s`}
+          {etaSeconds > 0 && ` · ${formatEta(etaSeconds)} left`}
+        </span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full bg-foreground transition-all duration-200"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function formatEta(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+
+// ----- XHR-based PUT so we get real progress, unlike fetch -----------------
+
+function putWithProgress(
+  url: string,
+  file: File,
+  onProgress: (uploaded: number, total: number, bps: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url, true);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    const started = Date.now();
+    xhr.upload.onprogress = (e) => {
+      const uploaded = e.loaded;
+      const total = e.total || file.size;
+      const elapsed = Math.max(0.001, (Date.now() - started) / 1000);
+      onProgress(uploaded, total, uploaded / elapsed);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Trajectory PUT failed (${xhr.status}).`));
+    };
+    xhr.onerror = () => reject(new Error("Trajectory PUT network error."));
+    xhr.send(file);
+  });
 }

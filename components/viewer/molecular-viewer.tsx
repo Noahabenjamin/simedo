@@ -42,6 +42,12 @@ type Speed = 0.25 | 0.5 | 1 | 2 | 4;
 type Props = {
   pdbUrl: string;
   trajectoryUrl?: string;
+  // Phase 5 streamed trajectory: when compressedTrajectoryUrl is provided,
+  // the viewer prefers the small JSON for instant playback and falls back
+  // to rawTrajectoryUrl (R2 + range requests) for power users.
+  compressedTrajectoryUrl?: string | null;
+  rawTrajectoryUrl?: string | null;
+  framesStreamed?: number | null;
   hasTrajectory?: boolean;
   className?: string;
   onReady?: (handle: MolecularViewerHandle) => void;
@@ -108,6 +114,8 @@ type NglTrajectory = {
 export function MolecularViewer({
   pdbUrl,
   trajectoryUrl,
+  compressedTrajectoryUrl,
+  rawTrajectoryUrl,
   hasTrajectory: hasTrajectoryProp,
   className,
   onReady,
@@ -115,6 +123,19 @@ export function MolecularViewer({
   onCameraMove,
   onFrameChange,
 }: Props) {
+  // Quality toggle. Compressed = small multi-model PDB (NMR-style animation,
+  // playable instantly). Raw = the original XTC/DCD/TRR streamed from R2,
+  // higher fidelity but slower to scrub.
+  const [highQuality, setHighQuality] = useState(false);
+  const useCompressed = !!compressedTrajectoryUrl && !highQuality;
+  // When we load the compressed multi-model PDB, it doubles as the
+  // structure file — NGL detects multi-model and starts the trajectory
+  // automatically via the existing NMR-ensemble path below.
+  const effectivePdbUrl = useCompressed ? compressedTrajectoryUrl! : pdbUrl;
+  const effectiveTrajectoryUrl =
+    useCompressed
+      ? undefined
+      : (highQuality && rawTrajectoryUrl) || trajectoryUrl;
   const { resolvedTheme } = useTheme();
   const bgColor = resolvedTheme === "light" ? BG_LIGHT : BG_DARK;
 
@@ -228,7 +249,7 @@ export function MolecularViewer({
         setCurrentFrame(0);
         setIsPlaying(false);
 
-        const component = await stage.loadFile(pdbUrl, {
+        const component = await stage.loadFile(effectivePdbUrl, {
           defaultRepresentation: false,
         });
         if (cancelled || !component) return;
@@ -241,13 +262,13 @@ export function MolecularViewer({
         // if the PDB itself has multiple models (NMR ensemble or DB-flagged
         // trajectory), animate model-to-model.
         const modelCount = component.structure?.modelStore?.count ?? 0;
-        const useExternalTraj = !!trajectoryUrl;
+        const useExternalTraj = !!effectiveTrajectoryUrl;
         const useEnsemble =
           !useExternalTraj && modelCount > 1 && hasTrajectoryProp !== false;
 
         if (useExternalTraj || useEnsemble) {
           const traj = component.addTrajectory(
-            useExternalTraj ? trajectoryUrl : undefined,
+            useExternalTraj ? effectiveTrajectoryUrl : undefined,
           );
           trajRef.current = traj;
 
@@ -330,7 +351,14 @@ export function MolecularViewer({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdbUrl, trajectoryUrl, retryToken]);
+  }, [
+    pdbUrl,
+    trajectoryUrl,
+    compressedTrajectoryUrl,
+    rawTrajectoryUrl,
+    highQuality,
+    retryToken,
+  ]);
 
   useEffect(() => {
     if (stageRef.current) {
@@ -517,6 +545,22 @@ export function MolecularViewer({
 
           {hoverInfo && hoverPos && (
             <HoverTooltip info={hoverInfo} x={hoverPos.x} y={hoverPos.y} />
+          )}
+
+          {compressedTrajectoryUrl && rawTrajectoryUrl && (
+            <button
+              type="button"
+              onClick={() => setHighQuality((q) => !q)}
+              className="absolute right-3 top-3 rounded-full border border-border bg-background/85 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground backdrop-blur-md transition-colors hover:border-foreground/30 hover:text-foreground"
+              aria-pressed={highQuality}
+              title={
+                highQuality
+                  ? "Streaming the raw trajectory. Click to switch back to the compressed preview."
+                  : "Playing the compressed preview. Click for the raw trajectory."
+              }
+            >
+              {highQuality ? "High quality" : "Streamed preview"}
+            </button>
           )}
         </>
       )}

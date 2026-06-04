@@ -1,4 +1,9 @@
-import type { Simulation, SimulationAuthor } from "@/types";
+import type {
+  Simulation,
+  SimulationAuthor,
+  SimulationProvenance,
+  SimulationTrajectory,
+} from "@/types";
 
 const thumb = (pdb: string) => `/api/thumbnail/${pdb.toLowerCase()}`;
 
@@ -25,7 +30,45 @@ const AUTHORS = new Proxy({} as Record<string, SimulationAuthor>, {
   get: () => HELIX_TEAM,
 });
 
-export const mockSimulations: Simulation[] = [
+// Default provenance + trajectory blocks for seed entries. Seed sims came
+// from the curated reference set, not real MD runs, so we mark them as
+// public_repository with no original_source_url (Phase 5: uploads adds
+// these fields to Simulation; the seeds get the defaults).
+const SEED_PROVENANCE: SimulationProvenance = {
+  software: null,
+  softwareVersion: null,
+  forceFieldFull: null,
+  waterModel: null,
+  temperatureK: null,
+  pressureBar: null,
+  ph: null,
+  ionicStrengthMm: null,
+  lengthNs: null,
+  simulationLab: "Simedo Team",
+  simulationInstitution: "Simedo Reference Set",
+  correspondingAuthor: "Simedo Team",
+  correspondingAuthorEmail: "team@simedo.work",
+  dataOrigin: "public_repository",
+  originalSourceUrl: null,
+  sourceDoi: null,
+  uploaderVerification: "manually_verified",
+};
+
+const SEED_TRAJECTORY: SimulationTrajectory = {
+  rawUrl: null,
+  rawSizeMb: null,
+  compressedUrl: null,
+  compressedSizeMb: null,
+  framesOriginal: null,
+  framesStreamed: null,
+  compressionMethod: null,
+  processingStatus: "ready",
+  processingError: null,
+};
+
+type RawSeed = Omit<Simulation, "provenance" | "trajectory">;
+
+const RAW_SEED: RawSeed[] = [
   // Globins
   {
     id: "oxy-hemoglobin-1hho",
@@ -423,6 +466,12 @@ export const mockSimulations: Simulation[] = [
     resolution: 1.9,
   },
 ];
+
+export const mockSimulations: Simulation[] = RAW_SEED.map((s) => ({
+  ...s,
+  provenance: { ...SEED_PROVENANCE },
+  trajectory: { ...SEED_TRAJECTORY },
+}));
 
 export function getSimulation(id: string): Simulation | undefined {
   return mockSimulations.find((s) => s.id === id);

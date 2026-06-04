@@ -7,6 +7,7 @@ import { AiSidebar } from "@/components/ai-sidebar";
 import { ViewerShell } from "@/components/viewer/viewer-shell";
 import { PresenceLayer } from "@/components/collab/presence-layer";
 import { ShareButton } from "@/components/collab/share-button";
+import { TrustBadge } from "@/components/sim/trust-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { MolecularViewerHandle } from "@/components/viewer/molecular-viewer";
 import type { Simulation } from "@/types";
@@ -51,6 +52,9 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
           <ViewerShell
             pdbUrl={simulation.pdbUrl}
             trajectoryUrl={simulation.trajectoryUrl ?? undefined}
+            compressedTrajectoryUrl={simulation.trajectory.compressedUrl}
+            rawTrajectoryUrl={simulation.trajectory.rawUrl}
+            framesStreamed={simulation.trajectory.framesStreamed}
             hasTrajectory={simulation.hasTrajectory}
             onReady={handleReady}
           />
@@ -111,6 +115,8 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
             </div>
           </div>
         </header>
+
+        <TrustBadge simulation={simulation} />
 
         <p className="text-base leading-relaxed text-foreground/85">
           {simulation.description}

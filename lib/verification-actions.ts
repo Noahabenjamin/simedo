@@ -7,10 +7,7 @@ import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { createClient } from "@/lib/supabase/server";
 import { isDbAvailable } from "@/lib/data/db-available";
-import {
-  institutionFromDomain,
-  validateInstitutionalDomain,
-} from "@/lib/institutional-domains";
+import { validateInstitutionalDomain } from "@/lib/institutional-domains";
 
 // Verification flow server actions:
 //   - verifyInstitution: emit a magic link to the user's institutional email

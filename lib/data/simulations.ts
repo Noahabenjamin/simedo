@@ -1,9 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { mockSimulations } from "@/lib/mock-data";
 import type {
+  CompressionMethod,
+  DataOrigin,
   ExperimentType,
+  ProcessingStatus,
   Simulation,
   SimulationCategory,
+  VerificationLevel,
 } from "@/types";
 import {
   applyFilters,
@@ -36,10 +40,37 @@ type DbSimulationRow = {
   like_count: number;
   comment_count: number;
   created_at: string;
+  // Provenance + compression (Phase 5)
+  software: string | null;
+  software_version: string | null;
+  force_field_full: string | null;
+  water_model: string | null;
+  temperature_k: number | null;
+  pressure_bar: number | null;
+  ph: number | null;
+  ionic_strength_mm: number | null;
+  trajectory_duration_ns: number | null;
+  simulation_lab: string | null;
+  simulation_institution: string | null;
+  corresponding_author: string | null;
+  corresponding_author_email: string | null;
+  data_origin: DataOrigin | null;
+  original_source_url: string | null;
+  source_doi: string | null;
+  raw_trajectory_url: string | null;
+  raw_trajectory_size_mb: number | null;
+  compressed_trajectory_url: string | null;
+  compressed_trajectory_size_mb: number | null;
+  frames_original: number | null;
+  frames_streamed: number | null;
+  compression_method: CompressionMethod | null;
+  processing_status: ProcessingStatus | null;
+  processing_error: string | null;
   users: {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
+    verification_level: VerificationLevel | null;
   } | null;
   simulation_tags: { tags: { name: string } | null }[] | null;
 };
@@ -51,7 +82,13 @@ function mapRow(row: DbSimulationRow): Simulation {
     description: row.description ?? "",
     pdbCode: row.pdb_code ?? "",
     pdbUrl: row.pdb_url,
-    trajectoryUrl: row.trajectory_url,
+    // Prefer compressed (small JSON) → raw R2 → legacy trajectory column.
+    // The viewer chooses by inspecting trajectory.compressedUrl / rawUrl;
+    // trajectoryUrl is the legacy single-URL field kept for embed/share.
+    trajectoryUrl:
+      row.compressed_trajectory_url ??
+      row.raw_trajectory_url ??
+      row.trajectory_url,
     hasTrajectory: row.has_trajectory ?? false,
     thumbnailUrl:
       row.thumbnail_url && !row.thumbnail_url.includes("placehold.co")
@@ -79,6 +116,36 @@ function mapRow(row: DbSimulationRow): Simulation {
       row.simulation_tags
         ?.map((st) => st.tags?.name)
         .filter((n): n is string => !!n) ?? [],
+    provenance: {
+      software: row.software,
+      softwareVersion: row.software_version,
+      forceFieldFull: row.force_field_full,
+      waterModel: row.water_model,
+      temperatureK: row.temperature_k,
+      pressureBar: row.pressure_bar,
+      ph: row.ph,
+      ionicStrengthMm: row.ionic_strength_mm,
+      lengthNs: row.trajectory_duration_ns,
+      simulationLab: row.simulation_lab,
+      simulationInstitution: row.simulation_institution,
+      correspondingAuthor: row.corresponding_author,
+      correspondingAuthorEmail: row.corresponding_author_email,
+      dataOrigin: row.data_origin ?? "original",
+      originalSourceUrl: row.original_source_url,
+      sourceDoi: row.source_doi,
+      uploaderVerification: row.users?.verification_level ?? "none",
+    },
+    trajectory: {
+      rawUrl: row.raw_trajectory_url,
+      rawSizeMb: row.raw_trajectory_size_mb,
+      compressedUrl: row.compressed_trajectory_url,
+      compressedSizeMb: row.compressed_trajectory_size_mb,
+      framesOriginal: row.frames_original,
+      framesStreamed: row.frames_streamed,
+      compressionMethod: row.compression_method,
+      processingStatus: row.processing_status ?? "ready",
+      processingError: row.processing_error,
+    },
   };
 }
 
@@ -87,7 +154,17 @@ const ROW_SELECT = `
   has_trajectory, thumbnail_url, category, protein_family, organism,
   experiment_type, resolution, view_count, like_count, comment_count,
   created_at,
-  users:user_id (username, display_name, avatar_url),
+  software, software_version, force_field_full, water_model,
+  temperature_k, pressure_bar, ph, ionic_strength_mm,
+  trajectory_duration_ns,
+  simulation_lab, simulation_institution,
+  corresponding_author, corresponding_author_email,
+  data_origin, original_source_url, source_doi,
+  raw_trajectory_url, raw_trajectory_size_mb,
+  compressed_trajectory_url, compressed_trajectory_size_mb,
+  frames_original, frames_streamed, compression_method,
+  processing_status, processing_error,
+  users:user_id (username, display_name, avatar_url, verification_level),
   simulation_tags ( tags ( name ) )
 `;
 
@@ -117,31 +194,57 @@ export async function getSimulation(id: string): Promise<Simulation | null> {
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 async function resolveStorageUrls(sim: Simulation): Promise<Simulation> {
-  const pdbUrl = await maybeSign(sim.pdbUrl);
-  const trajectoryUrl = sim.trajectoryUrl
-    ? await maybeSign(sim.trajectoryUrl)
-    : null;
-  return { ...sim, pdbUrl, trajectoryUrl };
+  const [pdbUrl, trajectoryUrl, rawUrl, compressedUrl] = await Promise.all([
+    maybeSign(sim.pdbUrl),
+    sim.trajectoryUrl ? maybeSign(sim.trajectoryUrl) : Promise.resolve(null),
+    sim.trajectory.rawUrl
+      ? maybeSign(sim.trajectory.rawUrl)
+      : Promise.resolve(null),
+    sim.trajectory.compressedUrl
+      ? maybeSign(sim.trajectory.compressedUrl)
+      : Promise.resolve(null),
+  ]);
+  return {
+    ...sim,
+    pdbUrl,
+    trajectoryUrl,
+    trajectory: {
+      ...sim.trajectory,
+      rawUrl,
+      compressedUrl,
+    },
+  };
 }
 
 async function maybeSign(url: string): Promise<string> {
-  if (!url.startsWith("storage://")) return url;
-  // storage://<bucket>/<path>
-  const stripped = url.slice("storage://".length);
-  const slash = stripped.indexOf("/");
-  if (slash < 0) return url;
-  const bucket = stripped.slice(0, slash);
-  const path = stripped.slice(slash + 1);
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-    return data?.signedUrl ?? url;
-  } catch (e) {
-    console.warn("[storage] sign failed", e);
-    return url;
+  if (url.startsWith("storage://")) {
+    // storage://<bucket>/<path> — Supabase Storage, sign for 1h.
+    const stripped = url.slice("storage://".length);
+    const slash = stripped.indexOf("/");
+    if (slash < 0) return url;
+    const bucket = stripped.slice(0, slash);
+    const path = stripped.slice(slash + 1);
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+      return data?.signedUrl ?? url;
+    } catch (e) {
+      console.warn("[storage] sign failed", e);
+      return url;
+    }
   }
+  if (url.startsWith("r2://")) {
+    // r2://<bucket>/<key> — resolve to a signed R2 download URL so the
+    // viewer can fetch it without needing the bucket to be public.
+    const { getPresignedDownloadUrl, r2KeyFromUrl } = await import("@/lib/r2");
+    const key = r2KeyFromUrl(url);
+    if (!key) return url;
+    const signed = await getPresignedDownloadUrl(key, SIGNED_URL_TTL_SECONDS);
+    return signed ?? url;
+  }
+  return url;
 }
 
 export async function listSimulations(opts: {

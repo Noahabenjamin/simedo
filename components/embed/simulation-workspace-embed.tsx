@@ -16,6 +16,9 @@ export function SimulationWorkspaceEmbed({ simulation }: Props) {
     <ViewerShell
       pdbUrl={simulation.pdbUrl}
       trajectoryUrl={simulation.trajectoryUrl ?? undefined}
+      compressedTrajectoryUrl={simulation.trajectory.compressedUrl}
+      rawTrajectoryUrl={simulation.trajectory.rawUrl}
+      framesStreamed={simulation.trajectory.framesStreamed}
       hasTrajectory={simulation.hasTrajectory}
     />
   );
