@@ -137,6 +137,7 @@ export function StudioHeroLayer({ opacity }: Props) {
           >
             <Link
               href="/upload"
+              title="Open to verified researchers. .edu, .ac.uk, .gov and most major research institutions worldwide — plus manual review for everyone else."
               className="flex items-center gap-2 whitespace-nowrap text-base font-semibold uppercase tracking-wide sm:text-xl md:text-2xl"
               style={{ color: ACCENT }}
             >
@@ -242,7 +243,7 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
         ))}
       </nav>
 
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-2">
         <Link
           href="/upload"
           onClick={onClose}
@@ -252,6 +253,11 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
           Get Started
           <ArrowUpRight className="size-5" strokeWidth={2} />
         </Link>
+        <p className="text-[10px] leading-snug text-black/60">
+          Open to verified researchers. .edu, .ac.uk, .gov and most major
+          research institutions worldwide — plus manual review for everyone
+          else.
+        </p>
       </div>
     </motion.div>
   );

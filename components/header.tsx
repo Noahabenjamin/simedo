@@ -85,6 +85,7 @@ export function Header({ viewer }: Props) {
             <>
               <Link
                 href="/upload"
+                title="Open to verified researchers. .edu, .ac.uk, .gov and most major research institutions worldwide — plus manual review for everyone else."
                 className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Upload
@@ -102,6 +103,7 @@ export function Header({ viewer }: Props) {
               </Link>
               <Link
                 href="/upload"
+                title="Open to verified researchers. .edu, .ac.uk, .gov and most major research institutions worldwide — plus manual review for everyone else."
                 className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Upload

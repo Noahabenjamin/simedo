@@ -6,13 +6,20 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/server";
 import { isDbAvailable } from "@/lib/data/db-available";
 import { verifyInstitution } from "@/lib/verification-actions";
+import { ManualReviewButton } from "@/components/verification/manual-review-button";
 
 export const metadata = {
-  title: "Verify your institution",
-  description: "Verify your academic email to upload simulations to Simedo.",
+  title: "Verify your account to upload",
+  description:
+    "Verify your work or university email to share simulations on Simedo.",
 };
 
-type SearchParams = Promise<{ error?: string; sent?: string }>;
+type SearchParams = Promise<{
+  error?: string;
+  sent?: string;
+  invalid_email?: string;
+  review?: string;
+}>;
 
 export default async function VerifyInstitutionPage({
   searchParams,
@@ -23,9 +30,7 @@ export default async function VerifyInstitutionPage({
   const sent = params.sent;
 
   if (!isDbAvailable()) {
-    return (
-      <UnavailableShell title="Database is not configured" />
-    );
+    return <UnavailableShell title="Database is not configured" />;
   }
   if (!process.env.RESEND_API_KEY) {
     return (
@@ -44,7 +49,9 @@ export default async function VerifyInstitutionPage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("verification_level, institution, institutional_email, display_name")
+    .select(
+      "verification_level, institution, institutional_email, display_name",
+    )
     .eq("id", user.id)
     .single();
 
@@ -74,7 +81,7 @@ export default async function VerifyInstitutionPage({
             <p className="text-sm leading-relaxed text-muted-foreground">
               We sent a verification link to{" "}
               <span className="font-mono text-foreground">{sent}</span>. Click
-              it within 24 hours to finish setting up your academic account.
+              it within 24 hours to finish setting up your account.
             </p>
             <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-muted-foreground">
               <Link
@@ -97,6 +104,9 @@ export default async function VerifyInstitutionPage({
     );
   }
 
+  const reviewable = params.review === "1";
+  const invalidEmail = params.invalid_email ?? "";
+
   return (
     <Shell>
       <header className="flex flex-col gap-3">
@@ -108,22 +118,26 @@ export default async function VerifyInstitutionPage({
           Back to browse
         </Link>
         <h1 className="text-3xl font-medium tracking-[-0.02em] text-foreground sm:text-4xl">
-          Verify your institution.
+          Verify your account to upload
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          One quick check so we can show your simulation came from a real lab.
-          Most universities and research institutes work — .edu, .ac.uk, .gov,
-          plus major European and Asian research institutes.
+          We do a quick check on uploaders so the simulations on Simedo can
+          be trusted. Most researchers verify in under a minute — just enter
+          your work or university email below.
         </p>
       </header>
 
-      <form action={verifyInstitution} className="mt-8 flex flex-col gap-5">
+      <form
+        action={verifyInstitution}
+        className="mt-8 flex flex-col gap-5"
+      >
         <Label label="Institutional email" hint="Yours, not a shared lab address.">
           <Input
             type="email"
             name="institutional_email"
             required
             autoComplete="email"
+            defaultValue={invalidEmail}
             placeholder="you@university.edu"
             className="h-11"
           />
@@ -160,6 +174,12 @@ export default async function VerifyInstitutionPage({
           </button>
         </div>
       </form>
+
+      {reviewable && invalidEmail && (
+        <ManualReviewSection email={invalidEmail} />
+      )}
+
+      <FooterCopy />
     </Shell>
   );
 }
@@ -234,6 +254,38 @@ function SuccessCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function ManualReviewSection({ email }: { email: string }) {
+  return (
+    <section className="mt-8 flex flex-col gap-3 rounded-2xl border border-dashed border-border bg-card p-6">
+      <h2 className="text-sm font-medium tracking-tight text-foreground">
+        Not at an institution we recognize?
+      </h2>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        We review applications from independent researchers, industry
+        scientists, citizen scientists, and institutions outside our
+        automatic list. Send us a brief note about your work and we&apos;ll
+        get back to you within 2–3 days.
+      </p>
+      <div className="pt-1">
+        <ManualReviewButton email={email} />
+      </div>
+    </section>
+  );
+}
+
+function FooterCopy() {
+  return (
+    <p className="mt-10 text-xs leading-relaxed text-muted-foreground">
+      We accept emails from universities, research institutes, national
+      labs, and government science agencies — including .edu, .ac.uk,
+      .gov, .ac.jp, and most major European, Asian, Australian, Canadian,
+      and Latin American institutions. If you&apos;re at a research
+      institution we don&apos;t recognize automatically, request manual
+      review and we&apos;ll get back to you within 2–3 days.
+    </p>
   );
 }
 

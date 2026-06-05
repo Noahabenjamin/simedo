@@ -121,6 +121,12 @@ export default async function SignupPage({
             Create account
           </button>
         </form>
+
+        <p className="mt-6 text-xs italic leading-relaxed text-muted-foreground">
+          Anyone can sign up and browse simulations. Uploading is open to
+          verified researchers — verification is a quick email check once
+          you&apos;re ready to share your first simulation.
+        </p>
       </div>
     </AuthLayout>
   );

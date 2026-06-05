@@ -33,6 +33,18 @@ function errorRedirect(message: string): never {
   redirect(`/verify-institution?error=${encodeURIComponent(message)}`);
 }
 
+function rejectionRedirect(
+  message: string,
+  opts: { email: string; canRequestReview: boolean },
+): never {
+  const params = new URLSearchParams({
+    error: message,
+    invalid_email: opts.email,
+  });
+  if (opts.canRequestReview) params.set("review", "1");
+  redirect(`/verify-institution?${params.toString()}`);
+}
+
 export async function verifyInstitution(formData: FormData): Promise<void> {
   if (!isDbAvailable()) errorRedirect("Database is not configured.");
   if (!process.env.RESEND_API_KEY) {
@@ -47,7 +59,10 @@ export async function verifyInstitution(formData: FormData): Promise<void> {
 
   const check = validateInstitutionalDomain(email);
   if (!check.valid) {
-    errorRedirect(check.reason);
+    rejectionRedirect(check.reason, {
+      email,
+      canRequestReview: check.canRequestReview,
+    });
   }
 
   const supabase = await createClient();
