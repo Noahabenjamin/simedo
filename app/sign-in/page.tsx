@@ -7,10 +7,17 @@ import { Input } from "@/components/ui/input";
 import { signInWithGoogle, signInWithPassword } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
 import { isDbAvailable } from "@/lib/data/db-available";
+import { ResendConfirmationButton } from "@/components/auth/resend-confirmation-button";
+import { Mail } from "lucide-react";
 
 void redirect;
 
-type SearchParams = Promise<{ redirect?: string; error?: string }>;
+type SearchParams = Promise<{
+  redirect?: string;
+  error?: string;
+  unconfirmed?: string;
+  email?: string;
+}>;
 
 export default async function LoginPage({
   searchParams,
@@ -74,6 +81,7 @@ export default async function LoginPage({
               name="email"
               required
               autoComplete="email"
+              defaultValue={params.email ?? ""}
               className="h-11"
             />
           </label>
@@ -89,7 +97,11 @@ export default async function LoginPage({
             />
           </label>
 
-          <AuthFormError message={params.error} />
+          {params.unconfirmed === "1" ? (
+            <UnconfirmedNotice email={params.email ?? ""} />
+          ) : (
+            <AuthFormError message={params.error} />
+          )}
 
           <button
             type="submit"
@@ -107,6 +119,21 @@ export default async function LoginPage({
         </form>
       </div>
     </AuthLayout>
+  );
+}
+
+function UnconfirmedNotice({ email }: { email: string }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-amber-700 dark:text-amber-300">
+      <div className="flex items-start gap-2 text-sm leading-relaxed">
+        <Mail className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} />
+        <span>
+          Your email isn&apos;t confirmed yet. Check your inbox for the
+          confirmation link we sent when you signed up — or resend it below.
+        </span>
+      </div>
+      <ResendConfirmationButton email={email} variant="ghost" />
+    </div>
   );
 }
 

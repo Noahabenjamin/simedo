@@ -13,6 +13,12 @@ function errorRedirect(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 }
 
+function isEmailNotConfirmed(err: { code?: string; message?: string }): boolean {
+  if (err.code === "email_not_confirmed") return true;
+  const msg = err.message?.toLowerCase() ?? "";
+  return msg.includes("email not confirmed") || msg.includes("not confirmed");
+}
+
 export async function signInWithPassword(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -24,7 +30,20 @@ export async function signInWithPassword(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) errorRedirect("/sign-in", error.message);
+  if (error) {
+    if (isEmailNotConfirmed(error as { code?: string; message?: string })) {
+      // Surface a separate, actionable state on the sign-in page so the
+      // user gets a resend-confirmation button instead of the misleading
+      // "invalid login credentials" message.
+      const params = new URLSearchParams({
+        unconfirmed: "1",
+        email,
+        redirect: redirectTo,
+      });
+      redirect(`/sign-in?${params.toString()}`);
+    }
+    errorRedirect("/sign-in", error.message);
+  }
 
   redirect(redirectTo);
 }
@@ -58,7 +77,10 @@ export async function signUp(formData: FormData): Promise<void> {
   });
   if (error) errorRedirect("/sign-up", error.message);
 
-  redirect("/onboarding");
+  // Don't drop the user on /onboarding — their email isn't confirmed yet
+  // and any authed route would bounce them around. Send them to the
+  // "Check your inbox" screen with the address they signed up with.
+  redirect(`/sign-up/check-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function signOut(): Promise<void> {

@@ -123,6 +123,10 @@ export default async function SignupPage({
         </form>
 
         <p className="mt-6 text-xs italic leading-relaxed text-muted-foreground">
+          After signing up, you&apos;ll receive a confirmation email. Click
+          the link to activate your account.
+        </p>
+        <p className="mt-2 text-xs italic leading-relaxed text-muted-foreground">
           Anyone can sign up and browse simulations. Uploading is open to
           verified researchers — verification is a quick email check once
           you&apos;re ready to share your first simulation.
