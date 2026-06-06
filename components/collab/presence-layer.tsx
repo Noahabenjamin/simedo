@@ -217,13 +217,11 @@ export function PresenceLayer({ simulationId, viewerRef, ownerId }: Props) {
     setPendingRequest(null);
   }
 
-  // Don't render anything if Realtime can't connect.
+  // Solo viewer: nothing useful to show, and the pill was overlapping
+  // the viewer's control panel (palette / reset / fullscreen) at top-
+  // right. Hide entirely until someone else joins the channel.
   if (!supabase || peers.length <= 1) {
-    // Single-user — render a quiet "1 viewer" indicator so the affordance
-    // is discoverable when someone else joins.
-    return (
-      <PresenceStack peers={peers} myUserId={myUserId ?? ""} isPresenter={isPresenter} />
-    );
+    return null;
   }
 
   return (

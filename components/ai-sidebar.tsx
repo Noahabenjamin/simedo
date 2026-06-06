@@ -32,6 +32,7 @@ const PLACEHOLDERS = [
 ];
 
 const SUGGESTED_PROMPTS = [
+  "Summarize this simulation in 3 sentences.",
   "What is the function of this protein?",
   "Which residues are catalytically important?",
   "What's special about this structure?",
@@ -85,15 +86,12 @@ export function AiSidebar({ simulationId, viewerRef }: Props) {
       });
   }, [simulationId]);
 
-  // Auto-summary on first load (after we know AI is configured).
-  useEffect(() => {
-    if (aiEnabled !== true) return;
-    if (autoSummaryFiredRef.current) return;
-    if (messages.length > 0) return;
-    autoSummaryFiredRef.current = true;
-    void send(AUTO_SUMMARY_PROMPT, { hideUserMessage: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiEnabled]);
+  // Auto-summary intentionally NOT fired on page load — every visit
+  // would burn Anthropic credits whether the user wants a summary or
+  // not. The "Summarize this simulation" suggestion chip below sends
+  // the same prompt on-demand instead.
+  //
+  // (autoSummaryFiredRef + AUTO_SUMMARY_PROMPT kept for the chip.)
 
   async function send(
     text: string,
