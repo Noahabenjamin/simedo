@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local Claude Code artifacts (scheduled-task lock, etc.)
+/.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

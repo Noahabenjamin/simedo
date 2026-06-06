@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, Heart, MessageCircle } from "lucide-react";
+import { ExternalLink, Eye, Heart, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCount, initials } from "@/lib/format";
 import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
+import { isSeedAuthor, rcsbStructureUrl } from "@/lib/seed-attribution";
 import type { Simulation } from "@/types";
 
 type Props = {
@@ -76,35 +77,59 @@ export function SimulationCard({ simulation }: Props) {
         </div>
 
         <div className="relative z-10 mt-auto flex items-center justify-between pt-2">
-          <Link
-            href={`/u/${author.username}`}
-            className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground"
-          >
-            <Avatar className="size-6 shrink-0">
-              <AvatarImage src={author.avatarUrl} alt="" />
-              <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
-                {initials(author.name)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="truncate text-xs text-muted-foreground">
-              {author.name}
-            </span>
-          </Link>
+          {isSeedAuthor(author.username) ? (
+            <a
+              href={rcsbStructureUrl(simulation.pdbCode)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 truncate text-xs text-muted-foreground transition-colors hover:text-foreground"
+              title={`View ${simulation.pdbCode} on RCSB PDB`}
+            >
+              Source: RCSB PDB
+              <ExternalLink className="size-3" />
+            </a>
+          ) : (
+            <Link
+              href={`/u/${author.username}`}
+              className="flex min-w-0 items-center gap-2 transition-colors hover:text-foreground"
+            >
+              <Avatar className="size-6 shrink-0">
+                <AvatarImage src={author.avatarUrl} alt="" />
+                <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+                  {initials(author.name)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="truncate text-xs text-muted-foreground">
+                {author.name}
+              </span>
+            </Link>
+          )}
 
-          <div className="flex shrink-0 items-center gap-3 font-mono text-xs text-muted-foreground">
-            <span className="flex items-center gap-1 tabular-nums">
-              <Eye className="size-3.5" />
-              {formatCount(simulation.viewCount)}
-            </span>
-            <span className="flex items-center gap-1 tabular-nums">
-              <Heart className="size-3.5" />
-              {formatCount(simulation.likeCount)}
-            </span>
-            <span className="flex items-center gap-1 tabular-nums">
-              <MessageCircle className="size-3.5" />
-              {formatCount(simulation.commentCount)}
-            </span>
-          </div>
+          {!isSeedAuthor(author.username) &&
+            (simulation.viewCount > 0 ||
+              simulation.likeCount > 0 ||
+              simulation.commentCount > 0) && (
+              <div className="flex shrink-0 items-center gap-3 font-mono text-xs text-muted-foreground">
+                {simulation.viewCount > 0 && (
+                  <span className="flex items-center gap-1 tabular-nums">
+                    <Eye className="size-3.5" />
+                    {formatCount(simulation.viewCount)}
+                  </span>
+                )}
+                {simulation.likeCount > 0 && (
+                  <span className="flex items-center gap-1 tabular-nums">
+                    <Heart className="size-3.5" />
+                    {formatCount(simulation.likeCount)}
+                  </span>
+                )}
+                {simulation.commentCount > 0 && (
+                  <span className="flex items-center gap-1 tabular-nums">
+                    <MessageCircle className="size-3.5" />
+                    {formatCount(simulation.commentCount)}
+                  </span>
+                )}
+              </div>
+            )}
         </div>
       </div>
     </article>

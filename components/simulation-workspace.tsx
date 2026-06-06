@@ -14,6 +14,8 @@ import type { Simulation } from "@/types";
 import { track } from "@/lib/analytics";
 import { formatCount, initials } from "@/lib/format";
 import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
+import { isSeedAuthor, rcsbStructureUrl } from "@/lib/seed-attribution";
+import { ExternalLink } from "lucide-react";
 
 // Client workspace: viewer + AI sidebar at top, then the simulation's
 // title/author/metadata directly under the viewer in the same column so
@@ -74,45 +76,72 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <Link
-              href={`/u/${simulation.author.username}`}
-              className="flex items-center gap-3 transition-opacity hover:opacity-80"
-            >
-              <Avatar className="size-10">
-                <AvatarImage src={simulation.author.avatarUrl} alt="" />
-                <AvatarFallback className="bg-muted text-xs text-muted-foreground">
-                  {initials(simulation.author.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-foreground">
-                  {simulation.author.name}
-                </span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  @{simulation.author.username} · {createdAt}
-                </span>
-              </div>
-            </Link>
-
-            <div className="flex items-center gap-5 font-mono text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5 tabular-nums">
-                <Eye className="size-4" />
-                {formatCount(simulation.viewCount)}
-              </span>
-              {likeSlot ?? (
-                <span className="flex items-center gap-1.5 tabular-nums">
-                  <Heart className="size-4" />
-                  {formatCount(simulation.likeCount)}
-                </span>
-              )}
+            {isSeedAuthor(simulation.author.username) ? (
               <a
-                href="#discussion"
-                className="flex items-center gap-1.5 tabular-nums transition-colors hover:text-foreground"
+                href={rcsbStructureUrl(simulation.pdbCode)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                <MessageCircle className="size-4" />
-                {formatCount(simulation.commentCount)}
+                Curated from{" "}
+                <span className="font-mono text-foreground">
+                  RCSB PDB {simulation.pdbCode}
+                </span>
+                <ExternalLink className="size-3.5" />
+                <span className="font-mono text-xs">· {createdAt}</span>
               </a>
-            </div>
+            ) : (
+              <Link
+                href={`/u/${simulation.author.username}`}
+                className="flex items-center gap-3 transition-opacity hover:opacity-80"
+              >
+                <Avatar className="size-10">
+                  <AvatarImage src={simulation.author.avatarUrl} alt="" />
+                  <AvatarFallback className="bg-muted text-xs text-muted-foreground">
+                    {initials(simulation.author.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-foreground">
+                    {simulation.author.name}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    @{simulation.author.username} · {createdAt}
+                  </span>
+                </div>
+              </Link>
+            )}
+
+            {!isSeedAuthor(simulation.author.username) &&
+              (simulation.viewCount > 0 ||
+                simulation.likeCount > 0 ||
+                simulation.commentCount > 0 ||
+                likeSlot) && (
+                <div className="flex items-center gap-5 font-mono text-sm text-muted-foreground">
+                  {simulation.viewCount > 0 && (
+                    <span className="flex items-center gap-1.5 tabular-nums">
+                      <Eye className="size-4" />
+                      {formatCount(simulation.viewCount)}
+                    </span>
+                  )}
+                  {likeSlot ??
+                    (simulation.likeCount > 0 && (
+                      <span className="flex items-center gap-1.5 tabular-nums">
+                        <Heart className="size-4" />
+                        {formatCount(simulation.likeCount)}
+                      </span>
+                    ))}
+                  {simulation.commentCount > 0 && (
+                    <a
+                      href="#discussion"
+                      className="flex items-center gap-1.5 tabular-nums transition-colors hover:text-foreground"
+                    >
+                      <MessageCircle className="size-4" />
+                      {formatCount(simulation.commentCount)}
+                    </a>
+                  )}
+                </div>
+              )}
           </div>
         </header>
 
