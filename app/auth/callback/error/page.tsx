@@ -5,7 +5,7 @@ import { ContactFooter } from "@/components/auth/contact-footer";
 import { ResendFromInput } from "@/components/auth/resend-from-input";
 
 export const metadata = {
-  title: "Confirmation link expired — Simedo",
+  title: "Confirmation link expired",
 };
 
 type SearchParams = Promise<{ email?: string; reason?: string }>;

@@ -1,4 +1,4 @@
-export const metadata = { title: "Community guidelines — Simedo" };
+export const metadata = { title: "Community guidelines" };
 
 export default function GuidelinesPage() {
   return (

@@ -5,7 +5,7 @@ import { ContactFooter } from "@/components/auth/contact-footer";
 import { ResendConfirmationButton } from "@/components/auth/resend-confirmation-button";
 
 export const metadata = {
-  title: "Check your inbox — Simedo",
+  title: "Check your inbox",
 };
 
 type SearchParams = Promise<{ email?: string }>;

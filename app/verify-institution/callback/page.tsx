@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, ShieldAlert } from "lucide-react";
 import { confirmVerificationToken } from "@/lib/verification-actions";
 
-export const metadata = { title: "Verifying — Simedo" };
+export const metadata = { title: "Verifying" };
 
 type SearchParams = Promise<{ token?: string }>;
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Manual review requested — Simedo",
+  title: "Manual review requested",
   description:
     "We received your manual-review request. We'll follow up within 2–3 days.",
 };

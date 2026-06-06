@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
+import { HomeLink } from "@/components/home-link";
 
 // Final scene: the camera has pulled back into a dark vista with the helix
 // drifting on the right. The menu reads on the left as a numbered column
@@ -77,30 +78,15 @@ export function BlueMenu({ opacity }: Props) {
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
-              <Link href={link.href} className="group block">
-                <div className="flex items-baseline gap-5 sm:gap-7">
-                  <span
-                    className="font-mono text-xs tracking-wider text-white/35 transition-colors duration-300 group-hover:text-cyan-300 sm:text-sm"
-                    style={{
-                      fontFamily: "var(--font-geist-mono), monospace",
-                    }}
-                  >
-                    {link.num}
-                  </span>
-                  <div className="relative">
-                    <span
-                      className="block text-[40px] font-medium leading-[1.02] tracking-[-0.025em] text-white transition-transform duration-300 ease-out group-hover:translate-x-2 sm:text-[52px] lg:text-[64px]"
-                      style={{ fontWeight: 500 }}
-                    >
-                      {link.label}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="mt-1 block h-px w-0 bg-cyan-300/80 transition-[width] duration-500 ease-out group-hover:w-full"
-                    />
-                  </div>
-                </div>
-              </Link>
+              {link.href === "/" ? (
+                <HomeLink href="/" className="group block">
+                  <MenuRow num={link.num} label={link.label} />
+                </HomeLink>
+              ) : (
+                <Link href={link.href} className="group block">
+                  <MenuRow num={link.num} label={link.label} />
+                </Link>
+              )}
             </motion.div>
           ))}
         </nav>
@@ -139,6 +125,31 @@ export function BlueMenu({ opacity }: Props) {
           <span>Inter · JetBrains Mono</span>
         </div>
       </motion.div>
+    </div>
+  );
+}
+
+function MenuRow({ num, label }: { num: string; label: string }) {
+  return (
+    <div className="flex items-baseline gap-5 sm:gap-7">
+      <span
+        className="font-mono text-xs tracking-wider text-white/35 transition-colors duration-300 group-hover:text-cyan-300 sm:text-sm"
+        style={{ fontFamily: "var(--font-geist-mono), monospace" }}
+      >
+        {num}
+      </span>
+      <div className="relative">
+        <span
+          className="block text-[40px] font-medium leading-[1.02] tracking-[-0.025em] text-white transition-transform duration-300 ease-out group-hover:translate-x-2 sm:text-[52px] lg:text-[64px]"
+          style={{ fontWeight: 500 }}
+        >
+          {label}
+        </span>
+        <span
+          aria-hidden="true"
+          className="mt-1 block h-px w-0 bg-cyan-300/80 transition-[width] duration-500 ease-out group-hover:w-full"
+        />
+      </div>
     </div>
   );
 }

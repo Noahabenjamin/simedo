@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, X } from "lucide-react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
+import { HomeLink } from "@/components/home-link";
 
 // Studio hero overlay — the existing studio layout, lifted into a layer
 // component so its opacity can be driven by scroll progress.
@@ -193,8 +194,7 @@ export function StudioHeroLayer({ opacity }: Props) {
 
 function Logo() {
   return (
-    <Link
-      href="/"
+    <HomeLink
       aria-label="Simedo home"
       className="flex size-8 items-center justify-center rounded-full border-2"
       style={{ borderColor: ACCENT }}
@@ -204,7 +204,7 @@ function Logo() {
         className="size-2.5 rounded-full"
         style={{ backgroundColor: ACCENT }}
       />
-    </Link>
+    </HomeLink>
   );
 }
 

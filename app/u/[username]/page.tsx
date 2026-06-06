@@ -22,9 +22,9 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
   const profile = await getProfileByUsername(username);
-  if (!profile) return { title: "Profile not found — Simedo" };
+  if (!profile) return { title: "Profile not found" };
   return {
-    title: `${profile.displayName} (@${profile.username}) — Simedo`,
+    title: `${profile.displayName} (@${profile.username})`,
     description: profile.bio || `Profile of @${profile.username} on Simedo.`,
   };
 }

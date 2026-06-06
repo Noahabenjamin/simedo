@@ -2,7 +2,7 @@ import { sendContactMessage } from "@/lib/contact/actions";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export const metadata = { title: "Contact — Simedo" };
+export const metadata = { title: "Contact" };
 
 type SearchParams = Promise<{ sent?: string; error?: string }>;
 
