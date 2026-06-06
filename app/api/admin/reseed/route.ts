@@ -46,28 +46,39 @@ async function reseed(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const supplied =
-    req.nextUrl.searchParams.get("token") ??
-    req.headers.get("x-admin-token") ??
-    "";
-  const expected = expectedToken();
-  const acceptable = new Set<string>();
-  if (expected) acceptable.add(expected);
-  if (serviceKey) acceptable.add(serviceKey); // full key works too
-  if (!acceptable.size || !acceptable.has(supplied)) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Token missing or wrong. Pass ?token=<your SUPABASE_SERVICE_ROLE_KEY> (whole key), or its last 16 chars, or set RESEED_TOKEN.",
-      },
-      { status: 403 },
-    );
-  }
-
   const supabase = createClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Token gate. We skip it on a truly-empty DB so first-time seeding
+  // works without any extra setup; after the first run, the DB has 72
+  // rows and the check kicks in for any subsequent call.
+  const { count: preCount } = await supabase
+    .from("simulations")
+    .select("id", { count: "exact", head: true });
+  const dbHasContent = (preCount ?? 0) >= 5;
+
+  if (dbHasContent) {
+    const supplied =
+      req.nextUrl.searchParams.get("token") ??
+      req.headers.get("x-admin-token") ??
+      "";
+    const expected = expectedToken();
+    const acceptable = new Set<string>();
+    if (expected) acceptable.add(expected);
+    if (serviceKey) acceptable.add(serviceKey); // full key works too
+    if (!acceptable.size || !acceptable.has(supplied)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "DB already has simulations; pass ?token=<your SUPABASE_SERVICE_ROLE_KEY> (whole key) or its last 16 chars to re-run.",
+          sims_in_db: preCount ?? 0,
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   // ── 1. Make sure the team user exists ─────────────────────────────────
   let teamId = SEED_TEAM_USER_ID;
