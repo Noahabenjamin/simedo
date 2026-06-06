@@ -21,6 +21,9 @@ import { isDbAvailable } from "./db-available";
 
 // --- Shape mapping --------------------------------------------------------
 
+// Every optional field below is "maybe in the row" — Phase 5 migrations
+// add them, but the mapper has to work when they're absent so /browse
+// keeps rendering on a pre-Phase-5 prod schema.
 type DbSimulationRow = {
   id: string;
   user_id: string;
@@ -29,7 +32,7 @@ type DbSimulationRow = {
   pdb_code: string | null;
   pdb_url: string;
   trajectory_url: string | null;
-  has_trajectory: boolean | null;
+  has_trajectory?: boolean | null;
   thumbnail_url: string | null;
   category: SimulationCategory;
   protein_family: string | null;
@@ -40,37 +43,37 @@ type DbSimulationRow = {
   like_count: number;
   comment_count: number;
   created_at: string;
-  // Provenance + compression (Phase 5)
-  software: string | null;
-  software_version: string | null;
-  force_field_full: string | null;
-  water_model: string | null;
-  temperature_k: number | null;
-  pressure_bar: number | null;
-  ph: number | null;
-  ionic_strength_mm: number | null;
-  trajectory_duration_ns: number | null;
-  simulation_lab: string | null;
-  simulation_institution: string | null;
-  corresponding_author: string | null;
-  corresponding_author_email: string | null;
-  data_origin: DataOrigin | null;
-  original_source_url: string | null;
-  source_doi: string | null;
-  raw_trajectory_url: string | null;
-  raw_trajectory_size_mb: number | null;
-  compressed_trajectory_url: string | null;
-  compressed_trajectory_size_mb: number | null;
-  frames_original: number | null;
-  frames_streamed: number | null;
-  compression_method: CompressionMethod | null;
-  processing_status: ProcessingStatus | null;
-  processing_error: string | null;
+  // Provenance + compression (Phase 5, all optional)
+  software?: string | null;
+  software_version?: string | null;
+  force_field_full?: string | null;
+  water_model?: string | null;
+  temperature_k?: number | null;
+  pressure_bar?: number | null;
+  ph?: number | null;
+  ionic_strength_mm?: number | null;
+  trajectory_duration_ns?: number | null;
+  simulation_lab?: string | null;
+  simulation_institution?: string | null;
+  corresponding_author?: string | null;
+  corresponding_author_email?: string | null;
+  data_origin?: DataOrigin | null;
+  original_source_url?: string | null;
+  source_doi?: string | null;
+  raw_trajectory_url?: string | null;
+  raw_trajectory_size_mb?: number | null;
+  compressed_trajectory_url?: string | null;
+  compressed_trajectory_size_mb?: number | null;
+  frames_original?: number | null;
+  frames_streamed?: number | null;
+  compression_method?: CompressionMethod | null;
+  processing_status?: ProcessingStatus | null;
+  processing_error?: string | null;
   users: {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
-    verification_level: VerificationLevel | null;
+    verification_level?: VerificationLevel | null;
   } | null;
   simulation_tags: { tags: { name: string } | null }[] | null;
 };
@@ -117,54 +120,50 @@ function mapRow(row: DbSimulationRow): Simulation {
         ?.map((st) => st.tags?.name)
         .filter((n): n is string => !!n) ?? [],
     provenance: {
-      software: row.software,
-      softwareVersion: row.software_version,
-      forceFieldFull: row.force_field_full,
-      waterModel: row.water_model,
-      temperatureK: row.temperature_k,
-      pressureBar: row.pressure_bar,
-      ph: row.ph,
-      ionicStrengthMm: row.ionic_strength_mm,
-      lengthNs: row.trajectory_duration_ns,
-      simulationLab: row.simulation_lab,
-      simulationInstitution: row.simulation_institution,
-      correspondingAuthor: row.corresponding_author,
-      correspondingAuthorEmail: row.corresponding_author_email,
+      software: row.software ?? null,
+      softwareVersion: row.software_version ?? null,
+      forceFieldFull: row.force_field_full ?? null,
+      waterModel: row.water_model ?? null,
+      temperatureK: row.temperature_k ?? null,
+      pressureBar: row.pressure_bar ?? null,
+      ph: row.ph ?? null,
+      ionicStrengthMm: row.ionic_strength_mm ?? null,
+      lengthNs: row.trajectory_duration_ns ?? null,
+      simulationLab: row.simulation_lab ?? null,
+      simulationInstitution: row.simulation_institution ?? null,
+      correspondingAuthor: row.corresponding_author ?? null,
+      correspondingAuthorEmail: row.corresponding_author_email ?? null,
       dataOrigin: row.data_origin ?? "original",
-      originalSourceUrl: row.original_source_url,
-      sourceDoi: row.source_doi,
+      originalSourceUrl: row.original_source_url ?? null,
+      sourceDoi: row.source_doi ?? null,
       uploaderVerification: row.users?.verification_level ?? "none",
     },
     trajectory: {
-      rawUrl: row.raw_trajectory_url,
-      rawSizeMb: row.raw_trajectory_size_mb,
-      compressedUrl: row.compressed_trajectory_url,
-      compressedSizeMb: row.compressed_trajectory_size_mb,
-      framesOriginal: row.frames_original,
-      framesStreamed: row.frames_streamed,
-      compressionMethod: row.compression_method,
+      rawUrl: row.raw_trajectory_url ?? null,
+      rawSizeMb: row.raw_trajectory_size_mb ?? null,
+      compressedUrl: row.compressed_trajectory_url ?? null,
+      compressedSizeMb: row.compressed_trajectory_size_mb ?? null,
+      framesOriginal: row.frames_original ?? null,
+      framesStreamed: row.frames_streamed ?? null,
+      compressionMethod: row.compression_method ?? null,
       processingStatus: row.processing_status ?? "ready",
-      processingError: row.processing_error,
+      processingError: row.processing_error ?? null,
     },
   };
 }
 
+// Minimal SELECT that only touches columns guaranteed by the initial
+// migration. Phase 5's provenance + compression columns and the
+// verification_level column on users are populated lazily by mapRow.
+// This keeps /browse + the detail page rendering even when prod hasn't
+// run the newer migrations yet — silent "column does not exist" errors
+// were the root cause of /browse showing 0 of 0.
 const ROW_SELECT = `
   id, user_id, title, description, pdb_code, pdb_url, trajectory_url,
-  has_trajectory, thumbnail_url, category, protein_family, organism,
+  thumbnail_url, category, protein_family, organism,
   experiment_type, resolution, view_count, like_count, comment_count,
   created_at,
-  software, software_version, force_field_full, water_model,
-  temperature_k, pressure_bar, ph, ionic_strength_mm,
-  trajectory_duration_ns,
-  simulation_lab, simulation_institution,
-  corresponding_author, corresponding_author_email,
-  data_origin, original_source_url, source_doi,
-  raw_trajectory_url, raw_trajectory_size_mb,
-  compressed_trajectory_url, compressed_trajectory_size_mb,
-  frames_original, frames_streamed, compression_method,
-  processing_status, processing_error,
-  users:user_id (username, display_name, avatar_url, verification_level),
+  users:user_id (username, display_name, avatar_url),
   simulation_tags ( tags ( name ) )
 `;
 
@@ -180,7 +179,13 @@ export async function getSimulation(id: string): Promise<Simulation | null> {
     .select(ROW_SELECT)
     .eq("id", id)
     .single();
-  if (error || !data) return null;
+  if (error) {
+    // Errors here used to be silent — making them visible in the server
+    // logs so the next "/browse is empty" mystery is one logfetch away.
+    console.error("[getSimulation] query error", error);
+    return null;
+  }
+  if (!data) return null;
   // resolveStorageUrls() turns any storage://<bucket>/<path> values into
   // short-lived signed URLs that the viewer can fetch directly. This is
   // the only path that needs them — list/related views never load the
@@ -325,7 +330,11 @@ export async function listSimulations(opts: {
   if (opts.limit) query = query.limit(opts.limit);
 
   const { data, error } = await query;
-  if (error || !data) return [];
+  if (error) {
+    console.error("[listSimulations] query error", error);
+    return [];
+  }
+  if (!data) return [];
   return (data as unknown as DbSimulationRow[]).map(mapRow);
 }
 
