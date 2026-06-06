@@ -51,12 +51,15 @@ async function reseed(req: NextRequest): Promise<NextResponse> {
     req.headers.get("x-admin-token") ??
     "";
   const expected = expectedToken();
-  if (!expected || supplied !== expected) {
+  const acceptable = new Set<string>();
+  if (expected) acceptable.add(expected);
+  if (serviceKey) acceptable.add(serviceKey); // full key works too
+  if (!acceptable.size || !acceptable.has(supplied)) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          "Token missing or wrong. Set RESEED_TOKEN, or use the last 16 chars of SUPABASE_SERVICE_ROLE_KEY as the token.",
+          "Token missing or wrong. Pass ?token=<your SUPABASE_SERVICE_ROLE_KEY> (whole key), or its last 16 chars, or set RESEED_TOKEN.",
       },
       { status: 403 },
     );
