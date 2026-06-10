@@ -61,34 +61,17 @@ export type Keyframe = {
   bgColor: string;             // CSS color for the page background under the canvas
   blueOverlay: number;         // fullscreen blue divisor: 0..1
   atomOpacity: number;         // CPK atoms fade in
-  callouts: {
-    backbone: number;
-    hbonds: number;
-    adenine: number;
-    thymine: number;
-    cytosine: number;
-    guanine: number;
-  };
 };
 
 const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
-const NO_CALLOUTS = {
-  backbone: 0,
-  hbonds: 0,
-  adenine: 0,
-  thymine: 0,
-  cytosine: 0,
-  guanine: 0,
-};
 
-// The hero sequence is one continuous shot in four beats:
+// The hero sequence is one continuous shot in three beats:
 //  1. Open — DNA shoved to the left of the viewport, slowly rotating
-//     while it appears to spool upward (particles + spin sell the motion).
-//  2. Approach — camera centers and tilts down toward the target base pair;
-//     callouts identify the structure.
-//  3. Dive — camera lands on the molecular adenine/thymine pair; a brief
-//     cyan flash marks the moment of impact.
-//  4. Vista — camera pulls back rapidly into a dark, particle-strewn
+//     while the studio hero text reads over the top.
+//  2. Approach + dive — camera centers, tilts toward the target base pair,
+//     and dives into the molecular adenine/thymine pair. A brief cyan
+//     flash marks the moment of impact.
+//  3. Vista — camera pulls back rapidly into a dark, particle-strewn
 //     backdrop where smaller helixes drift behind the menu.
 //
 // The Catmull-Rom spline in `evalCameraAtProgress` smooths velocity across
@@ -104,105 +87,78 @@ export const KEYFRAMES: Keyframe[] = [
     bgColor: "#FFFFFF",
     blueOverlay: 0,
     atomOpacity: 0,
-    callouts: NO_CALLOUTS,
   },
-  // 10% — studio text fades; helix still on the left, camera glides slightly
+  // 14% — studio text fades; helix still on the left, camera glides slightly
   //       closer.
   {
-    progress: 0.1,
+    progress: 0.14,
     cameraPos: v(2.2, 0.05, 7.0),
     cameraLookAt: v(1.1, 0.05, 0),
     studioOpacity: 0,
     bgColor: "#FAFBFD",
     blueOverlay: 0,
     atomOpacity: 0,
-    callouts: NO_CALLOUTS,
   },
-  // 22% — DNA centers; structural callouts (backbone, hbonds) fade in.
+  // 34% — DNA glides toward center; camera approaches the strand.
   {
-    progress: 0.22,
-    cameraPos: v(0.4, 0.15, 5.4),
-    cameraLookAt: v(0.1, 0.15, 0),
+    progress: 0.34,
+    cameraPos: v(0.4, 0.18, 4.6),
+    cameraLookAt: v(0.05, TARGET_BP_Y * 0.35, 0),
     studioOpacity: 0,
-    bgColor: "#F1F5FB",
+    bgColor: "#E3ECF6",
     blueOverlay: 0,
-    atomOpacity: 0,
-    callouts: { ...NO_CALLOUTS, backbone: 1, hbonds: 1 },
+    atomOpacity: 0.1,
   },
-  // 35% — closer; backbone/hbonds out, base callouts in. Bg starts cooling.
+  // 54% — molecular structure starts to crystallise; bg cools to navy.
   {
-    progress: 0.35,
-    cameraPos: v(0, 0.3, 4.0),
-    cameraLookAt: v(0, TARGET_BP_Y * 0.6, 0),
-    studioOpacity: 0,
-    bgColor: "#DDE6F2",
-    blueOverlay: 0,
-    atomOpacity: 0,
-    callouts: {
-      backbone: 0,
-      hbonds: 0,
-      adenine: 1,
-      thymine: 1,
-      cytosine: 1,
-      guanine: 1,
-    },
-  },
-  // 50% — base callouts out, molecular structure starts to crystallise;
-  //       bg darkens toward navy.
-  {
-    progress: 0.5,
+    progress: 0.54,
     cameraPos: v(0.05, TARGET_BP_Y + 0.55, 2.4),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#5B7DAA",
+    bgColor: "#3F5F8E",
     blueOverlay: 0,
-    atomOpacity: 0.4,
-    callouts: NO_CALLOUTS,
+    atomOpacity: 0.55,
   },
-  // 65% — leaning in to read the A-T pair; tilt continues toward top-down.
+  // 68% — leaning in to read the A-T pair; tilt continues toward top-down.
   {
-    progress: 0.65,
+    progress: 0.68,
     cameraPos: v(0.08, TARGET_BP_Y + 0.85, 1.25),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
-    bgColor: "#1E3358",
+    bgColor: "#1A2F54",
     blueOverlay: 0,
     atomOpacity: 1,
-    callouts: NO_CALLOUTS,
   },
-  // 78% — dive begins; flash builds.
+  // 80% — dive begins; flash builds.
   {
-    progress: 0.78,
+    progress: 0.8,
     cameraPos: v(0.04, TARGET_BP_Y + 0.32, 0.42),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
     bgColor: "#0B1A37",
     blueOverlay: 0.5,
     atomOpacity: 1,
-    callouts: NO_CALLOUTS,
   },
-  // 84% — peak of dive; brief full cyan flash (the moment of impact).
+  // 86% — peak of dive; brief full cyan flash (the moment of impact).
   {
-    progress: 0.84,
+    progress: 0.86,
     cameraPos: v(0.005, TARGET_BP_Y + 0.06, 0.06),
     cameraLookAt: v(0, TARGET_BP_Y, 0),
     studioOpacity: 0,
     bgColor: "#08152D",
     blueOverlay: 1,
     atomOpacity: 1,
-    callouts: NO_CALLOUTS,
   },
-  // 92% — pulling back. Flash dissolves. We're outside the helix now,
+  // 93% — pulling back. Flash dissolves. We're outside the helix now,
   //       looking back at the strand against the dark vista.
   {
-    progress: 0.92,
+    progress: 0.93,
     cameraPos: v(-2.2, TARGET_BP_Y + 1.8, 6.0),
     cameraLookAt: v(0, 0, 0),
     studioOpacity: 0,
     bgColor: COLORS.darkVista,
     blueOverlay: 0.18,
     atomOpacity: 1,
-    callouts: NO_CALLOUTS,
   },
   // 100% — vista locked. Helix small on the right, menu reads on the left.
   {
@@ -213,7 +169,6 @@ export const KEYFRAMES: Keyframe[] = [
     bgColor: COLORS.darkVista,
     blueOverlay: 0,
     atomOpacity: 1,
-    callouts: NO_CALLOUTS,
   },
 ];
 
@@ -221,6 +176,13 @@ export const KEYFRAMES: Keyframe[] = [
 
 export function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+// Smoother than cubic — gentler accel at the edges, sharper transition in
+// the middle. Used for scroll-driven fades so the studio-out / vista-in
+// reads as silk rather than a step.
+export function easeInOutQuintic(t: number): number {
+  return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
 }
 
 export function smoothstep(edge0: number, edge1: number, x: number): number {
@@ -261,7 +223,7 @@ export function findKfWindow(progress: number): {
     const b = KEYFRAMES[i + 1];
     if (progress >= a.progress && progress <= b.progress) {
       const t = (progress - a.progress) / (b.progress - a.progress);
-      return { a, b, t, easedT: easeInOutCubic(t) };
+      return { a, b, t, easedT: easeInOutQuintic(t) };
     }
   }
   const last = KEYFRAMES[KEYFRAMES.length - 1];

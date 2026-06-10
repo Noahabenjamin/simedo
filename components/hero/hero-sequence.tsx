@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useMemo, useRef } from "react";
 import { StudioHeroLayer } from "./studio-hero-layer";
-import { DnaCallouts } from "./dna-callouts";
 import { BlueMenu } from "./blue-menu";
 import { useHeroScroll } from "./use-hero-scroll";
 import { useIsNarrow, useReducedMotion } from "@/lib/hooks/use-media-pref";
@@ -15,9 +14,9 @@ import {
   lerpHex,
 } from "./hero-sequence-config";
 
-// The whole scroll-driven hero — a single 400vh container with a sticky
-// stage that contains the canvas, the studio overlay, the callouts, the
-// blue overlay, and the blue menu.
+// The whole scroll-driven hero — a single 320vh container with a sticky
+// stage that contains the canvas, the studio overlay, the blue overlay,
+// and the blue menu.
 
 const BlueDnaZoomScene = dynamic(
   () => import("./blue-dna-zoom-scene").then((m) => m.BlueDnaZoomScene),
@@ -65,7 +64,7 @@ export function HeroSequence() {
     <section
       ref={heroRef}
       className="relative w-full"
-      style={{ height: "400vh" }}
+      style={{ height: "320vh" }}
     >
       <div
         className="sticky top-0 h-screen w-full overflow-hidden"
@@ -73,9 +72,6 @@ export function HeroSequence() {
       >
         {/* 3D scene — always rendered; camera moves through keyframes */}
         <BlueDnaZoomScene progressRef={progressRef} lite={narrow} />
-
-        {/* Callouts overlay (DOM, screen-space) */}
-        <DnaCallouts progress={progress} />
 
         {/* Studio hero overlay (fades out at progress 0 → 0.1) */}
         <StudioHeroLayer opacity={studioOpacity} />
