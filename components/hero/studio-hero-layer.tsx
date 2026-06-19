@@ -17,6 +17,7 @@ const ACCENT = "#5E0ED7";
 const NAV_LINKS = [
   { label: "Browse", href: "/browse" },
   { label: "Upload", href: "/upload" },
+  { label: "Donate", href: "/donate" },
   { label: "Docs", href: "/docs" },
   { label: "About", href: "/about" },
 ] as const;
@@ -102,7 +103,7 @@ export function StudioHeroLayer({ opacity }: Props) {
           aria-label="Open menu"
           className="flex size-9 flex-col items-center justify-center gap-1 rounded-full bg-black"
           variants={fadeDown}
-          custom={5}
+          custom={6}
           initial="initial"
           animate="animate"
         >
@@ -111,6 +112,18 @@ export function StudioHeroLayer({ opacity }: Props) {
           <span aria-hidden="true" className="h-0.5 w-4 bg-white" />
         </motion.button>
       </nav>
+
+      {/* Microcopy under the nav explaining why "Donate" is there.
+          Hidden on small screens — the same line lives in the mobile menu. */}
+      <motion.p
+        className="hidden pl-[48vw] pr-[3.75rem] pt-2 text-right text-[10px] font-medium uppercase leading-tight tracking-[0.18em] text-black/55 sm:pl-[44vw] sm:pr-20 md:block md:pl-[40vw] md:pr-24 lg:pl-[32vw]"
+        variants={fadeDown}
+        custom={7}
+        initial="initial"
+        animate="animate"
+      >
+        Simedo is free — donations just cover hosting and API costs.
+      </motion.p>
 
       <div className="relative z-10 flex-1" />
 
@@ -232,14 +245,20 @@ function MobileMenu({ onClose }: { onClose: () => void }) {
 
       <nav className="mt-16 flex flex-col gap-8">
         {NAV_LINKS.map((link) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            onClick={onClose}
-            className="text-3xl font-semibold uppercase tracking-widest text-black"
-          >
-            {link.label}
-          </Link>
+          <div key={link.label} className="flex flex-col gap-1">
+            <Link
+              href={link.href}
+              onClick={onClose}
+              className="text-3xl font-semibold uppercase tracking-widest text-black"
+            >
+              {link.label}
+            </Link>
+            {link.href === "/donate" && (
+              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-black/55">
+                Free to use — donations cover hosting and API costs.
+              </span>
+            )}
+          </div>
         ))}
       </nav>
 
