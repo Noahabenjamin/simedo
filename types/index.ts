@@ -17,6 +17,15 @@ export type ExperimentType =
   | "binding"
   | "folding";
 
+export type StructureSource =
+  | "experimental-xray"
+  | "experimental-nmr"
+  | "experimental-cryoem"
+  | "alphafold2"
+  | "alphafold3"
+  | "rosetta"
+  | "other-prediction";
+
 export type SimulationAuthor = {
   name: string;
   username: string;
@@ -114,4 +123,12 @@ export type Simulation = {
   // Provenance + compression metadata (Phase 5: uploads)
   provenance: SimulationProvenance;
   trajectory: SimulationTrajectory;
+
+  // Structure provenance (experimental vs. predicted) — see lib/predictions.ts.
+  structureSource: StructureSource;
+  predictionConfidence: number | null;
+  predictionPaeUrl: string | null;
+  requestedBy: string | null;
+  requestedByAffiliation: string | null;
+  scientificallyReviewedBy: string | null;
 };

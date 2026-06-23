@@ -8,6 +8,7 @@ import { ViewerShell } from "@/components/viewer/viewer-shell";
 import { PresenceLayer } from "@/components/collab/presence-layer";
 import { ShareButton } from "@/components/collab/share-button";
 import { TrustBadge } from "@/components/sim/trust-badge";
+import { PaeHeatmap } from "@/components/viewer/pae-heatmap";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { MolecularViewerHandle } from "@/components/viewer/molecular-viewer";
 import type { Simulation } from "@/types";
@@ -15,6 +16,13 @@ import { track } from "@/lib/analytics";
 import { formatCount, initials } from "@/lib/format";
 import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
 import { isSeedAuthor, rcsbStructureUrl } from "@/lib/seed-attribution";
+import {
+  isPrediction,
+  predictionBadgeLabel,
+  confidenceLabel,
+  confidenceTooltip,
+  formatConfidence,
+} from "@/lib/predictions";
 import { ExternalLink } from "lucide-react";
 
 // Client workspace: viewer + AI sidebar at top, then the simulation's
@@ -47,6 +55,8 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
     { year: "numeric", month: "short", day: "numeric" },
   );
 
+  const predicted = isPrediction(simulation.structureSource);
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-10 lg:gap-6">
       <div className="flex flex-col gap-6 lg:col-span-7">
@@ -58,6 +68,7 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
             rawTrajectoryUrl={simulation.trajectory.rawUrl}
             framesStreamed={simulation.trajectory.framesStreamed}
             hasTrajectory={simulation.hasTrajectory}
+            structureSource={simulation.structureSource}
             onReady={handleReady}
           />
           <PresenceLayer
@@ -67,6 +78,10 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
           />
         </div>
 
+        {predicted && simulation.predictionPaeUrl && (
+          <PaeHeatmap url={simulation.predictionPaeUrl} size={300} />
+        )}
+
         <header className="flex flex-col gap-4">
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-3xl font-medium tracking-[-0.02em] text-foreground sm:text-4xl">
@@ -75,21 +90,72 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
             <ShareButton simulationId={simulation.id} />
           </div>
 
+          {(predicted ||
+            simulation.scientificallyReviewedBy ||
+            simulation.requestedBy) && (
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {predicted && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/25 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                    <span className="size-1.5 rounded-full bg-foreground/60" />
+                    {predictionBadgeLabel(simulation.structureSource)}
+                  </span>
+                )}
+                {predicted && simulation.predictionConfidence !== null && (
+                  <abbr
+                    title={confidenceTooltip(simulation.structureSource)}
+                    className="cursor-help rounded-full border border-border bg-background px-3 py-1 font-mono text-xs tabular-nums text-muted-foreground no-underline"
+                  >
+                    {confidenceLabel(simulation.structureSource)}{" "}
+                    {formatConfidence(
+                      simulation.structureSource,
+                      simulation.predictionConfidence,
+                    )}
+                  </abbr>
+                )}
+                {simulation.scientificallyReviewedBy && (
+                  <span className="rounded-full border border-foreground/25 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                    Scientifically reviewed by{" "}
+                    {simulation.scientificallyReviewedBy}
+                  </span>
+                )}
+              </div>
+              {simulation.requestedBy && (
+                <p className="text-xs italic text-muted-foreground">
+                  Requested by {simulation.requestedBy}
+                  {simulation.requestedByAffiliation
+                    ? `, ${simulation.requestedByAffiliation}`
+                    : ""}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-4">
             {isSeedAuthor(simulation.author.username) ? (
-              <a
-                href={rcsbStructureUrl(simulation.pdbCode)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Curated from{" "}
-                <span className="font-mono text-foreground">
-                  RCSB PDB {simulation.pdbCode}
+              predicted ? (
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  Curated from{" "}
+                  <span className="font-mono text-foreground">
+                    AlphaFold DB
+                  </span>
+                  <span className="font-mono text-xs">· {createdAt}</span>
                 </span>
-                <ExternalLink className="size-3.5" />
-                <span className="font-mono text-xs">· {createdAt}</span>
-              </a>
+              ) : (
+                <a
+                  href={rcsbStructureUrl(simulation.pdbCode)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Curated from{" "}
+                  <span className="font-mono text-foreground">
+                    RCSB PDB {simulation.pdbCode}
+                  </span>
+                  <ExternalLink className="size-3.5" />
+                  <span className="font-mono text-xs">· {createdAt}</span>
+                </a>
+              )
             ) : (
               <Link
                 href={`/u/${simulation.author.username}`}
@@ -151,6 +217,18 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
           {simulation.description}
         </p>
 
+        {predicted && (
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-relaxed text-muted-foreground">
+            <strong className="font-medium text-foreground">
+              This structure is a computational prediction, not experimental.
+            </strong>{" "}
+            Predictions are useful for generating hypotheses about structure
+            and interactions but should not be treated as definitive
+            structural facts. Review the confidence scores and PAE plot before
+            drawing conclusions.
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/browse?category=${simulation.category}`}
@@ -174,9 +252,11 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
               {simulation.organism}
             </Link>
           )}
-          <span className="rounded-full border border-border bg-background px-3 py-1 font-mono text-xs text-muted-foreground tabular-nums">
-            {simulation.pdbCode}
-          </span>
+          {simulation.pdbCode && (
+            <span className="rounded-full border border-border bg-background px-3 py-1 font-mono text-xs text-muted-foreground tabular-nums">
+              {simulation.pdbCode}
+            </span>
+          )}
           {simulation.tags.map((t) => (
             <Link
               key={t}

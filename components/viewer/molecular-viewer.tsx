@@ -12,6 +12,7 @@ import { PlaybackBar } from "./playback-bar";
 import { HoverTooltip, type HoverInfo } from "./hover-tooltip";
 import { ViewerSkeleton } from "./viewer-skeleton";
 import { emit, subscribe } from "@/lib/viewer-bus";
+import type { StructureSource } from "@/types";
 
 export type AtomClickInfo = {
   resname: string;
@@ -49,6 +50,9 @@ type Props = {
   rawTrajectoryUrl?: string | null;
   framesStreamed?: number | null;
   hasTrajectory?: boolean;
+  // When this is an AlphaFold/Rosetta entry the viewer defaults to the
+  // pLDDT color scheme so users see confidence before chain coloring.
+  structureSource?: StructureSource;
   className?: string;
   onReady?: (handle: MolecularViewerHandle) => void;
   onAtomClick?: (info: AtomClickInfo) => void;
@@ -102,6 +106,20 @@ type NglPicking = {
   };
 };
 
+type NglColormakerRegistry = {
+  addScheme: (fn: (this: { atomColor: (atom: { bfactor: number }) => number }) => void) => string;
+};
+
+// AlphaFold's standard pLDDT palette. The pLDDT score is stored in the
+// PDB B-factor column for every AF model, so a B-factor-driven colormaker
+// gives the canonical confidence coloring on AlphaFold structures.
+function plddtColor(b: number): number {
+  if (b >= 90) return 0x0053d6; // very high  (dark blue)
+  if (b >= 70) return 0x65cbf3; // confident   (light blue)
+  if (b >= 50) return 0xffdb13; // low         (yellow)
+  return 0xff7d45;              // very low    (orange)
+}
+
 type NglTrajectory = {
   player?: { timeout: number; mode: string; play: () => void; pause: () => void };
   setFrame: (n: number) => void;
@@ -117,6 +135,7 @@ export function MolecularViewer({
   compressedTrajectoryUrl,
   rawTrajectoryUrl,
   hasTrajectory: hasTrajectoryProp,
+  structureSource,
   className,
   onReady,
   onAtomClick,
@@ -144,6 +163,9 @@ export function MolecularViewer({
   const componentRef = useRef<NglComponent | null>(null);
   const trajRef = useRef<NglTrajectory | null>(null);
   const highlightRepRef = useRef<NglRepresentation | null>(null);
+  // NGL returns an opaque scheme id from ColormakerRegistry.addScheme; we
+  // hand that id back to addRepresentation when the user picks "plddt".
+  const plddtSchemeIdRef = useRef<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -151,7 +173,11 @@ export function MolecularViewer({
 
   const [representation, setRepresentation] =
     useState<Representation>("cartoon");
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("chainname");
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(() =>
+    structureSource && structureSource.startsWith("alphafold")
+      ? "plddt"
+      : "chainname",
+  );
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -183,8 +209,23 @@ export function MolecularViewer({
     (async () => {
       const NGL = (await import("ngl")) as unknown as {
         Stage: new (el: HTMLElement, params?: object) => NglStage;
+        ColormakerRegistry: NglColormakerRegistry;
       };
       if (cancelled || !containerRef.current) return;
+
+      // Register the pLDDT colormaker once per mount. The id is opaque to
+      // us — we just pass it back as the colorScheme on representations.
+      try {
+        if (!plddtSchemeIdRef.current) {
+          plddtSchemeIdRef.current = NGL.ColormakerRegistry.addScheme(
+            function () {
+              this.atomColor = (atom) => plddtColor(atom.bfactor);
+            },
+          );
+        }
+      } catch (e) {
+        console.warn("[MolecularViewer] could not register pLDDT scheme", e);
+      }
 
       const stage = new NGL.Stage(containerRef.current, {
         backgroundColor: bgColor,
@@ -255,7 +296,9 @@ export function MolecularViewer({
         if (cancelled || !component) return;
 
         componentRef.current = component;
-        component.addRepresentation(representation, { colorScheme });
+        component.addRepresentation(representation, {
+          colorScheme: resolveColorScheme(colorScheme, plddtSchemeIdRef.current),
+        });
         stage.autoView();
 
         // Trajectory wiring: prefer an explicit trajectory URL; otherwise,
@@ -417,7 +460,9 @@ export function MolecularViewer({
     const component = componentRef.current;
     if (!component) return;
     component.removeAllRepresentations();
-    component.addRepresentation(representation, { colorScheme });
+    component.addRepresentation(representation, {
+      colorScheme: resolveColorScheme(colorScheme, plddtSchemeIdRef.current),
+    });
     highlightRepRef.current = null;
   }, [representation, colorScheme]);
 
@@ -566,6 +611,18 @@ export function MolecularViewer({
       )}
     </div>
   );
+}
+
+// "plddt" is a synthetic ColorScheme value that maps to a runtime-registered
+// NGL scheme id. For every other value we pass the string straight through to
+// NGL, which recognises it as a built-in scheme name. If registration failed,
+// fall back to "bfactor" so the user at least sees confidence-like variation.
+function resolveColorScheme(
+  scheme: ColorScheme,
+  registeredId: string | null,
+): string {
+  if (scheme !== "plddt") return scheme;
+  return registeredId ?? "bfactor";
 }
 
 // Default export so next/dynamic can import without the .then(named) dance.

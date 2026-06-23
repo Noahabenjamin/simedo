@@ -138,10 +138,13 @@ async function reseed(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // ── 2. Figure out which PDB codes are already in the DB ──────────────
+  // ── 2. Figure out which sims are already in the DB. We dedupe by both
+  //       pdb_code (for RCSB-sourced entries) and id (for AlphaFold-
+  //       sourced entries whose pdb_code is null and can't be used as a
+  //       natural key). ──────────────────────────────────────────────────
   const { data: existingRows, error: existingErr } = await supabase
     .from("simulations")
-    .select("pdb_code");
+    .select("id, pdb_code");
   if (existingErr) {
     return NextResponse.json(
       { ok: false, stage: "list-existing", error: existingErr.message },
@@ -153,12 +156,17 @@ async function reseed(req: NextRequest): Promise<NextResponse> {
       .map((r) => (r as { pdb_code: string | null }).pdb_code)
       .filter((c): c is string => !!c),
   );
+  const existingIds = new Set(
+    (existingRows ?? []).map((r) => (r as { id: string }).id),
+  );
 
-  // ── 3. Insert only the rows whose PDB code is new. Each row is
+  // ── 3. Insert only the rows whose PDB code or id is new. Each row is
   //       cloned so we can swap in the resolved teamId if it differs
   //       from the hardcoded SEED_TEAM_USER_ID. ────────────────────────
   const toInsert = SEED_SIMS.filter(
-    (s) => !existingCodes.has(s.pdb_code),
+    (s) =>
+      !existingIds.has(s.id) &&
+      (s.pdb_code === null || !existingCodes.has(s.pdb_code)),
   ).map((s) => ({ ...s, user_id: teamId }));
 
   let inserted = 0;

@@ -66,7 +66,20 @@ const SEED_TRAJECTORY: SimulationTrajectory = {
   processingError: null,
 };
 
-type RawSeed = Omit<Simulation, "provenance" | "trajectory">;
+// RawSeed strips out the heavy provenance/trajectory bundles + the
+// prediction fields. All mock entries are RCSB-sourced experimental
+// structures, so the prediction fields collapse to safe defaults below.
+type RawSeed = Omit<
+  Simulation,
+  | "provenance"
+  | "trajectory"
+  | "structureSource"
+  | "predictionConfidence"
+  | "predictionPaeUrl"
+  | "requestedBy"
+  | "requestedByAffiliation"
+  | "scientificallyReviewedBy"
+>;
 
 const RAW_SEED: RawSeed[] = [
   // Globins
@@ -471,6 +484,12 @@ export const mockSimulations: Simulation[] = RAW_SEED.map((s) => ({
   ...s,
   provenance: { ...SEED_PROVENANCE },
   trajectory: { ...SEED_TRAJECTORY },
+  structureSource: "experimental-xray",
+  predictionConfidence: null,
+  predictionPaeUrl: null,
+  requestedBy: null,
+  requestedByAffiliation: null,
+  scientificallyReviewedBy: null,
 }));
 
 export function getSimulation(id: string): Simulation | undefined {

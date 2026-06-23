@@ -7,6 +7,7 @@ import type {
   ProcessingStatus,
   Simulation,
   SimulationCategory,
+  StructureSource,
   VerificationLevel,
 } from "@/types";
 import {
@@ -69,6 +70,14 @@ type DbSimulationRow = {
   compression_method?: CompressionMethod | null;
   processing_status?: ProcessingStatus | null;
   processing_error?: string | null;
+  // Structure provenance (added 2026-06-23 — present once the alphafold
+  // migration is applied; defaults handled in mapRow).
+  structure_source?: StructureSource | null;
+  prediction_confidence?: number | null;
+  prediction_pae_url?: string | null;
+  requested_by?: string | null;
+  requested_by_affiliation?: string | null;
+  scientifically_reviewed_by?: string | null;
   users: {
     username: string;
     display_name: string | null;
@@ -149,6 +158,12 @@ function mapRow(row: DbSimulationRow): Simulation {
       processingStatus: row.processing_status ?? "ready",
       processingError: row.processing_error ?? null,
     },
+    structureSource: row.structure_source ?? "experimental-xray",
+    predictionConfidence: row.prediction_confidence ?? null,
+    predictionPaeUrl: row.prediction_pae_url ?? null,
+    requestedBy: row.requested_by ?? null,
+    requestedByAffiliation: row.requested_by_affiliation ?? null,
+    scientificallyReviewedBy: row.scientifically_reviewed_by ?? null,
   };
 }
 
@@ -163,6 +178,8 @@ const ROW_SELECT = `
   thumbnail_url, category, protein_family, organism,
   experiment_type, resolution, view_count, like_count, comment_count,
   created_at,
+  structure_source, prediction_confidence, prediction_pae_url,
+  requested_by, requested_by_affiliation, scientifically_reviewed_by,
   users:user_id (username, display_name, avatar_url),
   simulation_tags ( tags ( name ) )
 `;

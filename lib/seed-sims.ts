@@ -13,7 +13,9 @@ export type SeedSim = {
   user_id: string;
   title: string;
   description: string;
-  pdb_code: string;
+  // pdb_code is null for AlphaFold-sourced entries (UniProt IDs are 6 chars
+  // and don't fit the 4-character constraint on pdb_code).
+  pdb_code: string | null;
   pdb_url: string;
   thumbnail_url: string | null;
   category:
@@ -41,6 +43,18 @@ export type SeedSim = {
   comment_count: number;
   created_at: string;
   updated_at: string;
+  // Structure provenance (added 2026-06-23). RCSB entries default to
+  // 'experimental-xray'; AlphaFold entries set the AF fields below.
+  structure_source:
+    | "experimental-xray"
+    | "experimental-nmr"
+    | "experimental-cryoem"
+    | "alphafold2"
+    | "alphafold3"
+    | "rosetta"
+    | "other-prediction";
+  prediction_confidence: number | null;
+  prediction_pae_url: string | null;
 };
 
 // Stays in sync with seed.sql + the rebrand migration.
@@ -59,7 +73,14 @@ type Input = Omit<
   | "like_count"
   | "comment_count"
   | "updated_at"
->;
+  | "structure_source"
+  | "prediction_confidence"
+  | "prediction_pae_url"
+> & {
+  // pdb_code is required for the RCSB helper, since the URL is derived
+  // from it. AlphaFold entries go through af() instead.
+  pdb_code: string;
+};
 
 function s(i: Input): SeedSim {
   return {
@@ -73,6 +94,40 @@ function s(i: Input): SeedSim {
     like_count: 0,
     comment_count: 0,
     updated_at: i.created_at,
+    structure_source: "experimental-xray",
+    prediction_confidence: null,
+    prediction_pae_url: null,
+  };
+}
+
+// AlphaFold DB helper. We hardcode v6 (the current public release) since
+// every URL on alphafold.ebi.ac.uk is versioned and that's the version
+// matching the mean pLDDT we record here.
+type AfInput = Omit<
+  Input,
+  "pdb_code"
+> & {
+  uniprot_id: string;       // e.g. "Q9UBX2" — used to build the AF URLs
+  mean_plddt: number;       // 0-100, fetched once from the AlphaFold API
+};
+
+function af(i: AfInput): SeedSim {
+  const { uniprot_id, mean_plddt, ...rest } = i;
+  return {
+    ...rest,
+    pdb_code: null,
+    user_id: SEED_TEAM_USER_ID,
+    pdb_url: `https://alphafold.ebi.ac.uk/files/AF-${uniprot_id}-F1-model_v6.pdb`,
+    thumbnail_url: null,
+    license: "cc-by",
+    visibility: "public",
+    view_count: 0,
+    like_count: 0,
+    comment_count: 0,
+    updated_at: i.created_at,
+    structure_source: "alphafold2",
+    prediction_confidence: mean_plddt,
+    prediction_pae_url: `https://alphafold.ebi.ac.uk/files/AF-${uniprot_id}-F1-predicted_aligned_error_v6.json`,
   };
 }
 
@@ -1019,7 +1074,7 @@ export const SEED_SIMS: SeedSim[] = [
     created_at: "2026-03-16T10:00:00Z",
   }),
 
-  // ─── DUX4 family — experimental anchor for the AlphaFold entries ─────
+  // ─── DUX4 family — experimental anchor + AlphaFold predictions ───────
   s({
     id: "44444444-0000-0000-0000-000000000001",
     title: "DUX4 double homeodomain bound to DNA",
@@ -1032,5 +1087,47 @@ export const SEED_SIMS: SeedSim[] = [
     experiment_type: "binding",
     resolution: 2.5,
     created_at: "2026-06-23T10:00:00Z",
+  }),
+  af({
+    id: "44444444-0000-0000-0000-000000000002",
+    title: "DUX4 full-length (AlphaFold prediction)",
+    description:
+      "Full-length human DUX4, AlphaFold 2 monomer prediction (UniProt Q9UBX2, 424 residues). The two tandem homeodomains at the N-terminus are confident (compare to the 5ZFZ crystal structure); the long C-terminal transactivation tail is mostly low-pLDDT and is intrinsically disordered, which is the biologically relevant signal here rather than a wrong prediction.",
+    uniprot_id: "Q9UBX2",
+    mean_plddt: 61.44,
+    category: "protein",
+    protein_family: "Transcription factors",
+    organism: "Homo sapiens",
+    experiment_type: "equilibrium",
+    resolution: null,
+    created_at: "2026-06-23T10:05:00Z",
+  }),
+  af({
+    id: "44444444-0000-0000-0000-000000000003",
+    title: "LEUTX (AlphaFold prediction)",
+    description:
+      "Human LEUTX, AlphaFold 2 monomer prediction (UniProt A8MZ59, 198 residues). LEUTX is a paired-like homeobox transcription factor expressed in cleavage-stage embryos and aberrantly re-expressed alongside DUX4 in FSHD muscle — useful as a comparison partner for DUX4's regulatory program.",
+    uniprot_id: "A8MZ59",
+    mean_plddt: 67.5,
+    category: "protein",
+    protein_family: "Transcription factors",
+    organism: "Homo sapiens",
+    experiment_type: "equilibrium",
+    resolution: null,
+    created_at: "2026-06-23T10:10:00Z",
+  }),
+  af({
+    id: "44444444-0000-0000-0000-000000000004",
+    title: "ZSCAN4 (AlphaFold prediction)",
+    description:
+      "Human ZSCAN4, AlphaFold 2 monomer prediction (UniProt Q8NAM6). ZSCAN4 is a zinc-finger transcription factor activated by DUX4 in the early embryonic / FSHD program. Mean pLDDT is low because most of the protein outside the SCAN and zinc-finger domains is intrinsically disordered — focus on the structured regions.",
+    uniprot_id: "Q8NAM6",
+    mean_plddt: 50.03,
+    category: "protein",
+    protein_family: "Transcription factors",
+    organism: "Homo sapiens",
+    experiment_type: "equilibrium",
+    resolution: null,
+    created_at: "2026-06-23T10:15:00Z",
   }),
 ];

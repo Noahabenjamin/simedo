@@ -20,7 +20,8 @@ export type ColorScheme =
   | "chainname"
   | "residueindex"
   | "sstruc"
-  | "element";
+  | "element"
+  | "plddt";
 
 const REPRESENTATIONS: { value: Representation; label: string }[] = [
   { value: "cartoon", label: "Cartoon" },
@@ -35,6 +36,11 @@ const COLOR_SCHEMES: { value: ColorScheme; label: string }[] = [
   { value: "residueindex", label: "By residue index" },
   { value: "sstruc", label: "By secondary structure" },
   { value: "element", label: "By element" },
+  // AlphaFold's pLDDT palette — only meaningful for AlphaFold/Rosetta
+  // entries (B-factors carry the per-residue confidence). For experimental
+  // entries it just colors by crystallographic B-factor, which is still
+  // a legitimate view (mobility vs. confidence look similar).
+  { value: "plddt", label: "By pLDDT (predicted confidence)" },
 ];
 
 type Props = {
