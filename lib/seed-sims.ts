@@ -1018,4 +1018,19 @@ export const SEED_SIMS: SeedSim[] = [
     resolution: 2.3,
     created_at: "2026-03-16T10:00:00Z",
   }),
+
+  // ─── DUX4 family — experimental anchor for the AlphaFold entries ─────
+  s({
+    id: "44444444-0000-0000-0000-000000000001",
+    title: "DUX4 double homeodomain bound to DNA",
+    description:
+      "Crystal structure of the DUX4 double homeodomain in complex with its target DNA. DUX4 is the transcription factor whose aberrant expression in adult muscle drives facioscapulohumeral muscular dystrophy (FSHD); this structure captures how its tandem homeodomains recognise the canonical DUX4 binding site.",
+    pdb_code: "5ZFZ",
+    category: "dna",
+    protein_family: "Transcription factors",
+    organism: "Homo sapiens",
+    experiment_type: "binding",
+    resolution: 2.5,
+    created_at: "2026-06-23T10:00:00Z",
+  }),
 ];

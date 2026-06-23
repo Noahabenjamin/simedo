@@ -21,11 +21,13 @@ export default function AboutPage() {
 
       <article className="prose prose-neutral flex max-w-none flex-col gap-6 text-base leading-relaxed text-foreground/90">
         <p>
-          {/* TODO(noah): replace this paragraph with your real founder story. */}
           Simedo started from a simple frustration: the most beautiful science
           of our time — the atomic motions of proteins, DNA, drugs binding to
           their targets — sits locked inside academic supercomputers,
-          impossible for most people to see. Existing tools are powerful but
+          impossible for most people to see. Running a simulation yourself
+          means downloading half a dozen separate pieces of software, learning
+          each one, and then waiting hours or days for a result — assuming
+          your computer can run it at all. Existing viewers are powerful but
           ugly, command-line only, and isolated from any kind of community.
         </p>
 
@@ -52,10 +54,9 @@ export default function AboutPage() {
           Who we are
         </h2>
         <p>
-          {/* TODO(noah): a paragraph about you, what brings you to this problem. */}
-          Simedo is built by a small team that cares about the intersection of
-          science and design. We&apos;re based in Europe and we&apos;re open to
-          collaborators.
+          Simedo is built entirely by one person — me, Noah Benjamin, a
+          soon-to-be bioinformation technology student at Aalto University in
+          Finland. I&apos;m open to collaborators.
         </p>
 
         <h2 className="mt-8 text-2xl font-medium tracking-[-0.02em] text-foreground">
