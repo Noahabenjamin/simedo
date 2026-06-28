@@ -177,16 +177,42 @@ function tokenAcceptable(req: NextRequest, serviceKey: string): boolean {
   return false;
 }
 
-// Probe for the post-rename columns by attempting a 0-row select that
-// asks for them. Postgrest fails the query if any requested column is
-// missing, so the absence of an error means migration 20260628000001
-// has been applied.
-async function detectPhase2Schema(supabase: SupabaseClient): Promise<boolean> {
+// Probe what columns exist on the prod simulations table. Postgrest
+// fails a 0-row select if any requested column is missing, so a clean
+// query means the columns exist. Prod has historically been multiple
+// migrations behind the repo; we need to adapt the insert payload to
+// whatever's actually there.
+type SchemaCaps = {
+  has_trajectory: boolean;          // migration 20260602000004
+  structure_source: boolean;        // migration 20260623000001 (and its siblings)
+  prediction_confidence: boolean;   // migration 20260623000001 — pre-rename name
+  phase2: boolean;                  // migration 20260628000001 — full rename + extras
+};
+
+async function probeColumn(
+  supabase: SupabaseClient,
+  cols: string,
+): Promise<boolean> {
   const { error } = await supabase
     .from("simulations")
-    .select("uniprot_id, alphafold_id, prediction_mean_plddt, prediction_pae_max, reviewed_by_affiliation")
+    .select(cols)
     .limit(0);
   return !error;
+}
+
+async function detectSchema(supabase: SupabaseClient): Promise<SchemaCaps> {
+  return {
+    has_trajectory: await probeColumn(supabase, "has_trajectory"),
+    structure_source: await probeColumn(
+      supabase,
+      "structure_source, prediction_pae_url, requested_by, requested_by_affiliation, scientifically_reviewed_by",
+    ),
+    prediction_confidence: await probeColumn(supabase, "prediction_confidence"),
+    phase2: await probeColumn(
+      supabase,
+      "uniprot_id, alphafold_id, prediction_mean_plddt, prediction_pae_max, reviewed_by_affiliation",
+    ),
+  };
 }
 
 async function ensureTeamUser(supabase: SupabaseClient): Promise<string> {
@@ -256,8 +282,10 @@ async function findExistingPreMigration(
   entry: Entry,
 ): Promise<{ id: string } | null> {
   // Pre-migration schema doesn't have uniprot_id, so AF entries can
-  // only be deduped by title (the seeded AF rows from 20260623000002
-  // use different titles than ours but are the same protein).
+  // only be deduped by pdb_url (the model file URL, or — once we've
+  // uploaded to Storage — a storage:// pointer). We match against
+  // either the original source URL or any storage://pdbs/<id>.pdb so
+  // re-runs don't insert duplicates.
   if ("pdb_code" in entry.matchBy) {
     const { data } = await supabase
       .from("simulations")
@@ -267,14 +295,25 @@ async function findExistingPreMigration(
       .maybeSingle();
     return data ?? null;
   }
-  // Match by the AlphaFold model URL — unique per UniProt ID + version.
-  const { data } = await supabase
+  // Look for either the canonical AlphaFold DB URL or a storage://
+  // pointer whose row contains this UniProt ID in the title.
+  const { data: bySrc } = await supabase
     .from("simulations")
     .select("id")
     .eq("pdb_url", entry.sourceUrl)
     .limit(1)
     .maybeSingle();
-  return data ?? null;
+  if (bySrc) return bySrc;
+  // Fallback: title-based match (our titles include the UniProt code
+  // implicitly via the protein name; this catches re-runs after the
+  // first insert moved pdb_url to storage://...).
+  const { data: byTitle } = await supabase
+    .from("simulations")
+    .select("id")
+    .eq("title", entry.row.title)
+    .limit(1)
+    .maybeSingle();
+  return byTitle ?? null;
 }
 
 async function uploadPdb(
@@ -334,8 +373,9 @@ function buildInsertPayload(
   userId: string,
   pdbUrl: string,
   entry: Entry,
-  phase2: boolean,
+  caps: SchemaCaps,
 ): Record<string, unknown> {
+  // Always-present columns from the initial migration (20260601000001).
   const base: Record<string, unknown> = {
     id: simId,
     user_id: userId,
@@ -349,27 +389,27 @@ function buildInsertPayload(
     experiment_type: entry.row.experiment_type,
     license: entry.row.license,
     visibility: entry.row.visibility,
-    has_trajectory: entry.row.has_trajectory,
     source_doi: entry.row.source_doi,
-    structure_source: entry.row.structure_source,
-    prediction_pae_url: entry.row.prediction_pae_url,
-    requested_by: entry.row.requested_by,
-    requested_by_affiliation: entry.row.requested_by_affiliation,
   };
-  if (phase2) {
-    return {
-      ...base,
-      uniprot_id: entry.row.uniprot_id,
-      alphafold_id: entry.row.alphafold_id,
-      prediction_mean_plddt: entry.row.prediction_mean_plddt,
-      prediction_pae_max: entry.row.prediction_pae_max,
-    };
+  if (caps.has_trajectory) {
+    base.has_trajectory = entry.row.has_trajectory;
   }
-  // Pre-migration: write the score into the old column name.
-  return {
-    ...base,
-    prediction_confidence: entry.row.prediction_mean_plddt,
-  };
+  if (caps.structure_source) {
+    base.structure_source = entry.row.structure_source;
+    base.prediction_pae_url = entry.row.prediction_pae_url;
+    base.requested_by = entry.row.requested_by;
+    base.requested_by_affiliation = entry.row.requested_by_affiliation;
+  }
+  if (caps.phase2) {
+    base.uniprot_id = entry.row.uniprot_id;
+    base.alphafold_id = entry.row.alphafold_id;
+    base.prediction_mean_plddt = entry.row.prediction_mean_plddt;
+    base.prediction_pae_max = entry.row.prediction_pae_max;
+  } else if (caps.prediction_confidence) {
+    // Pre-rename schema — store the pLDDT under the old column name.
+    base.prediction_confidence = entry.row.prediction_mean_plddt;
+  }
+  return base;
 }
 
 async function seed(req: NextRequest): Promise<NextResponse> {
@@ -396,9 +436,9 @@ async function seed(req: NextRequest): Promise<NextResponse> {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  let phase2: boolean;
+  let caps: SchemaCaps;
   try {
-    phase2 = await detectPhase2Schema(supabase);
+    caps = await detectSchema(supabase);
   } catch (e) {
     return NextResponse.json(
       {
@@ -436,7 +476,7 @@ async function seed(req: NextRequest): Promise<NextResponse> {
 
   for (const entry of ENTRIES) {
     try {
-      const existing = phase2
+      const existing = caps.phase2
         ? await findExisting(supabase, entry)
         : await findExistingPreMigration(supabase, entry);
       if (existing) {
@@ -460,7 +500,7 @@ async function seed(req: NextRequest): Promise<NextResponse> {
         teamUserId,
         pdbUrl,
         entry,
-        phase2,
+        caps,
       );
       const { error: insertErr } = await supabase
         .from("simulations")
@@ -473,7 +513,7 @@ async function seed(req: NextRequest): Promise<NextResponse> {
             label: entry.label,
             error: insertErr.message,
             code: (insertErr as { code?: string }).code,
-            phase2_schema: phase2,
+            schema_caps: caps,
             partial_results: results,
           },
           { status: 500 },
@@ -505,9 +545,28 @@ async function seed(req: NextRequest): Promise<NextResponse> {
     .from("simulations")
     .select("id", { count: "exact", head: true });
 
+  // Build a friendly note about which AlphaFold UI bits will/won't
+  // light up given the schema state.
+  const notes: string[] = [];
+  if (!caps.has_trajectory) {
+    notes.push(
+      "Migration 20260602000004_has_trajectory is not applied; AlphaFold entries written without has_trajectory.",
+    );
+  }
+  if (!caps.structure_source) {
+    notes.push(
+      "Migration 20260623000001_alphafold_columns is not applied; entries are stored without structure_source / prediction metadata, so the prediction badge + PAE plot won't render. Apply the migration and re-run.",
+    );
+  } else if (!caps.phase2) {
+    notes.push(
+      "Migration 20260628000001_alphafold_schema_update is not applied; pLDDT is stored under the old prediction_confidence column. Apply the migration to enable the pLDDT bucket label + PAE max scaling.",
+    );
+  }
+
   return NextResponse.json({
     ok: true,
-    phase2_schema: phase2,
+    schema_caps: caps,
+    notes,
     team_user_id: teamUserId,
     sims_in_db_now: totalSims ?? null,
     results,
