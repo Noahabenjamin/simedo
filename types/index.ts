@@ -22,6 +22,7 @@ export type StructureSource =
   | "experimental-nmr"
   | "experimental-cryoem"
   | "alphafold2"
+  | "alphafold-multimer"
   | "alphafold3"
   | "rosetta"
   | "other-prediction";
@@ -126,9 +127,13 @@ export type Simulation = {
 
   // Structure provenance (experimental vs. predicted) — see lib/predictions.ts.
   structureSource: StructureSource;
-  predictionConfidence: number | null;
+  uniprotId: string | null;
+  alphafoldId: string | null;
+  predictionMeanPlddt: number | null;
   predictionPaeUrl: string | null;
+  predictionPaeMax: number | null;
   requestedBy: string | null;
   requestedByAffiliation: string | null;
   scientificallyReviewedBy: string | null;
+  reviewedByAffiliation: string | null;
 };

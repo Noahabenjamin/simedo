@@ -12,6 +12,7 @@ import type {
 } from "@/types";
 import {
   applyFilters,
+  expandSourceBucket,
   type BrowseFilters,
 } from "@/lib/browse-filters";
 import { isDbAvailable } from "./db-available";
@@ -70,14 +71,19 @@ type DbSimulationRow = {
   compression_method?: CompressionMethod | null;
   processing_status?: ProcessingStatus | null;
   processing_error?: string | null;
-  // Structure provenance (added 2026-06-23 — present once the alphafold
-  // migration is applied; defaults handled in mapRow).
+  // Structure provenance (added 2026-06-23, extended 2026-06-28).
+  // Present once the alphafold migrations are applied; defaults
+  // handled in mapRow so /browse keeps rendering pre-migration.
   structure_source?: StructureSource | null;
-  prediction_confidence?: number | null;
+  uniprot_id?: string | null;
+  alphafold_id?: string | null;
+  prediction_mean_plddt?: number | null;
   prediction_pae_url?: string | null;
+  prediction_pae_max?: number | null;
   requested_by?: string | null;
   requested_by_affiliation?: string | null;
   scientifically_reviewed_by?: string | null;
+  reviewed_by_affiliation?: string | null;
   users: {
     username: string;
     display_name: string | null;
@@ -159,11 +165,15 @@ function mapRow(row: DbSimulationRow): Simulation {
       processingError: row.processing_error ?? null,
     },
     structureSource: row.structure_source ?? "experimental-xray",
-    predictionConfidence: row.prediction_confidence ?? null,
+    uniprotId: row.uniprot_id ?? null,
+    alphafoldId: row.alphafold_id ?? null,
+    predictionMeanPlddt: row.prediction_mean_plddt ?? null,
     predictionPaeUrl: row.prediction_pae_url ?? null,
+    predictionPaeMax: row.prediction_pae_max ?? null,
     requestedBy: row.requested_by ?? null,
     requestedByAffiliation: row.requested_by_affiliation ?? null,
     scientificallyReviewedBy: row.scientifically_reviewed_by ?? null,
+    reviewedByAffiliation: row.reviewed_by_affiliation ?? null,
   };
 }
 
@@ -178,8 +188,10 @@ const ROW_SELECT = `
   thumbnail_url, category, protein_family, organism,
   experiment_type, resolution, view_count, like_count, comment_count,
   created_at,
-  structure_source, prediction_confidence, prediction_pae_url,
-  requested_by, requested_by_affiliation, scientifically_reviewed_by,
+  structure_source, uniprot_id, alphafold_id,
+  prediction_mean_plddt, prediction_pae_url, prediction_pae_max,
+  requested_by, requested_by_affiliation,
+  scientifically_reviewed_by, reviewed_by_affiliation,
   users:user_id (username, display_name, avatar_url),
   simulation_tags ( tags ( name ) )
 `;
@@ -300,6 +312,12 @@ export async function listSimulations(opts: {
     }
     if (f.experiments.length > 0) {
       query = query.in("experiment_type", f.experiments);
+    }
+    if (f.sources.length > 0) {
+      query = query.in(
+        "structure_source",
+        f.sources.flatMap(expandSourceBucket),
+      );
     }
     if (f.tags.length > 0) {
       // Two-step resolve via the join tables. If no sim has any of the

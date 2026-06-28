@@ -5,7 +5,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatCount, initials } from "@/lib/format";
 import { CATEGORY_LABEL, familySlug } from "@/lib/browse-filters";
 import { isSeedAuthor, rcsbStructureUrl } from "@/lib/seed-attribution";
-import type { Simulation } from "@/types";
+import type { Simulation, StructureSource } from "@/types";
+
+// Short corner tag for predicted entries on the browse card. AlphaFold
+// variants get the brand name; Rosetta/other lumps into "Predicted".
+function thumbnailTag(source: StructureSource): string | null {
+  if (source.startsWith("alphafold")) return "AlphaFold";
+  if (source === "rosetta" || source === "other-prediction") return "Predicted";
+  return null;
+}
 
 type Props = {
   simulation: Simulation;
@@ -22,6 +30,8 @@ export function SimulationCard({ simulation }: Props) {
     proteinFamily,
   } = simulation;
 
+  const predictedTag = thumbnailTag(simulation.structureSource);
+
   return (
     <article className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-3 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-foreground/30">
       <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-muted">
@@ -34,6 +44,11 @@ export function SimulationCard({ simulation }: Props) {
           unoptimized={thumbnailUrl.startsWith("/api/thumbnail/")}
           className="object-cover transition-opacity group-hover:opacity-95"
         />
+        {predictedTag && (
+          <span className="absolute left-2 top-2 z-10 rounded-md border border-border bg-background/85 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-foreground backdrop-blur-md">
+            {predictedTag}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-2">

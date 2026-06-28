@@ -19,9 +19,8 @@ import { isSeedAuthor, rcsbStructureUrl } from "@/lib/seed-attribution";
 import {
   isPrediction,
   predictionBadgeLabel,
-  confidenceLabel,
-  confidenceTooltip,
-  formatConfidence,
+  plddtBucket,
+  plddtTooltip,
 } from "@/lib/predictions";
 import { ExternalLink } from "lucide-react";
 
@@ -79,7 +78,11 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
         </div>
 
         {predicted && simulation.predictionPaeUrl && (
-          <PaeHeatmap url={simulation.predictionPaeUrl} size={300} />
+          <PaeHeatmap
+            url={simulation.predictionPaeUrl}
+            size={320}
+            max={simulation.predictionPaeMax}
+          />
         )}
 
         <header className="flex flex-col gap-4">
@@ -101,22 +104,24 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
                     {predictionBadgeLabel(simulation.structureSource)}
                   </span>
                 )}
-                {predicted && simulation.predictionConfidence !== null && (
+                {predicted && simulation.predictionMeanPlddt !== null && (
                   <abbr
-                    title={confidenceTooltip(simulation.structureSource)}
+                    title={plddtTooltip(simulation.predictionMeanPlddt)}
                     className="cursor-help rounded-full border border-border bg-background px-3 py-1 font-mono text-xs tabular-nums text-muted-foreground no-underline"
                   >
-                    {confidenceLabel(simulation.structureSource)}{" "}
-                    {formatConfidence(
-                      simulation.structureSource,
-                      simulation.predictionConfidence,
-                    )}
+                    pLDDT {simulation.predictionMeanPlddt.toFixed(1)}
+                    <span className="ml-1.5 text-foreground/70">
+                      ({plddtBucket(simulation.predictionMeanPlddt)})
+                    </span>
                   </abbr>
                 )}
                 {simulation.scientificallyReviewedBy && (
                   <span className="rounded-full border border-foreground/25 bg-background px-3 py-1 text-xs font-medium text-foreground">
                     Scientifically reviewed by{" "}
                     {simulation.scientificallyReviewedBy}
+                    {simulation.reviewedByAffiliation
+                      ? `, ${simulation.reviewedByAffiliation}`
+                      : ""}
                   </span>
                 )}
               </div>
@@ -219,13 +224,12 @@ export function SimulationWorkspace({ simulation, ownerId, likeSlot }: Props) {
 
         {predicted && (
           <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm leading-relaxed text-muted-foreground">
-            <strong className="font-medium text-foreground">
-              This structure is a computational prediction, not experimental.
-            </strong>{" "}
-            Predictions are useful for generating hypotheses about structure
-            and interactions but should not be treated as definitive
-            structural facts. Review the confidence scores and PAE plot before
-            drawing conclusions.
+            This is a computational prediction, not an experimental
+            structure. AlphaFold predictions are useful for generating
+            hypotheses about structure and function but should not be
+            treated as definitive. Confidence varies across the
+            protein — examine the per-residue pLDDT coloring and PAE
+            plot below before drawing conclusions about specific regions.
           </div>
         )}
 

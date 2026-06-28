@@ -55,6 +55,25 @@ const EXPERIMENT_OPTIONS = [
   { value: "folding", label: "Folding" },
 ] as const;
 
+const STRUCTURE_SOURCE_OPTIONS = [
+  { value: "experimental-xray", label: "Experimental — X-ray" },
+  { value: "experimental-nmr", label: "Experimental — NMR" },
+  { value: "experimental-cryoem", label: "Experimental — cryo-EM" },
+  { value: "alphafold2", label: "AlphaFold 2 prediction" },
+  { value: "alphafold-multimer", label: "AlphaFold Multimer prediction" },
+  { value: "alphafold3", label: "AlphaFold 3 prediction" },
+  { value: "rosetta", label: "Rosetta prediction" },
+  { value: "other-prediction", label: "Other computational prediction" },
+] as const;
+
+type StructureSourceValue = (typeof STRUCTURE_SOURCE_OPTIONS)[number]["value"];
+
+function isPredictionSource(s: StructureSourceValue): boolean {
+  return (
+    s.startsWith("alphafold") || s === "rosetta" || s === "other-prediction"
+  );
+}
+
 const SOFTWARE_OPTIONS = [
   "GROMACS",
   "AMBER",
@@ -109,6 +128,19 @@ type Draft = {
   source_doi: string;
   license: string;
   visibility: "public" | "unlisted" | "private";
+  // Structure provenance — experimental by default. The prediction-only
+  // fields below are ignored on submit unless structure_source is a
+  // predicted source.
+  structure_source: StructureSourceValue;
+  uniprot_id: string;
+  alphafold_id: string;
+  prediction_mean_plddt: string;
+  prediction_pae_url: string;
+  prediction_pae_max: string;
+  requested_by: string;
+  requested_by_affiliation: string;
+  scientifically_reviewed_by: string;
+  reviewed_by_affiliation: string;
 };
 
 function emptyDraft(d: Defaults): Draft {
@@ -136,6 +168,16 @@ function emptyDraft(d: Defaults): Draft {
     source_doi: "",
     license: "cc-by",
     visibility: "public",
+    structure_source: "experimental-xray",
+    uniprot_id: "",
+    alphafold_id: "",
+    prediction_mean_plddt: "",
+    prediction_pae_url: "",
+    prediction_pae_max: "",
+    requested_by: "",
+    requested_by_affiliation: "",
+    scientifically_reviewed_by: "",
+    reviewed_by_affiliation: "",
   };
 }
 
@@ -450,6 +492,156 @@ export function UploadForm({ defaults }: Props) {
             optional
             optionalHint="Optional. Without a trajectory, the page renders the static structure."
           />
+        </div>
+      </Section>
+
+      <Section
+        title="Structure source"
+        hint="Experimental or computational. Predicted structures get a badge + pLDDT + PAE plot on the detail page."
+      >
+        <div className="flex flex-col gap-4">
+          <Label label="Source" required>
+            <Select
+              value={draft.structure_source}
+              onChange={(v) =>
+                set("structure_source", v as StructureSourceValue)
+              }
+              options={STRUCTURE_SOURCE_OPTIONS}
+            />
+          </Label>
+
+          {isPredictionSource(draft.structure_source) && (
+            <div className="flex flex-col gap-4 rounded-lg border border-border bg-muted/30 p-4">
+              <p className="text-xs text-muted-foreground">
+                Prediction metadata. The pLDDT score drives the confidence
+                badge and the per-residue viewer coloring. The PAE URL
+                drives the heatmap below the viewer.
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Label
+                  label="UniProt ID"
+                  hint="e.g. Q9UBX2 — the source protein accession."
+                >
+                  <Input
+                    value={draft.uniprot_id}
+                    onChange={(e) =>
+                      set("uniprot_id", e.target.value.trim().toUpperCase())
+                    }
+                    placeholder="Q9UBX2"
+                    maxLength={20}
+                    className="h-11 font-mono"
+                  />
+                </Label>
+                <Label
+                  label="AlphaFold ID"
+                  hint="e.g. AF-Q9UBX2-F1-v6 — pin the exact AF model."
+                >
+                  <Input
+                    value={draft.alphafold_id}
+                    onChange={(e) => set("alphafold_id", e.target.value.trim())}
+                    placeholder="AF-Q9UBX2-F1-v6"
+                    maxLength={40}
+                    className="h-11 font-mono"
+                  />
+                </Label>
+                <Label
+                  label="Mean pLDDT"
+                  hint="0-100. Above 90 is very high; below 50 is very low."
+                >
+                  <Input
+                    type="number"
+                    step="any"
+                    min={0}
+                    max={100}
+                    value={draft.prediction_mean_plddt}
+                    onChange={(e) =>
+                      set("prediction_mean_plddt", e.target.value)
+                    }
+                    placeholder="61.4"
+                    className="h-11"
+                  />
+                </Label>
+                <Label
+                  label="PAE max (Å)"
+                  hint="AlphaFold DB caps at 31.75. Leave blank to auto-detect."
+                >
+                  <Input
+                    type="number"
+                    step="any"
+                    min={0}
+                    value={draft.prediction_pae_max}
+                    onChange={(e) =>
+                      set("prediction_pae_max", e.target.value)
+                    }
+                    placeholder="31.75"
+                    className="h-11"
+                  />
+                </Label>
+              </div>
+              <Label
+                label="PAE JSON URL"
+                hint="Public URL to the PAE matrix JSON. Host it in Supabase Storage or paste the AlphaFold DB URL."
+              >
+                <Input
+                  type="url"
+                  value={draft.prediction_pae_url}
+                  onChange={(e) =>
+                    set("prediction_pae_url", e.target.value.trim())
+                  }
+                  placeholder="https://…predicted_aligned_error.json"
+                  maxLength={500}
+                  className="h-11"
+                />
+              </Label>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Label
+                  label="Requested by"
+                  hint="Researcher who asked for this entry. Optional."
+                >
+                  <Input
+                    value={draft.requested_by}
+                    onChange={(e) => set("requested_by", e.target.value)}
+                    maxLength={120}
+                    className="h-11"
+                  />
+                </Label>
+                <Label label="Requester affiliation">
+                  <Input
+                    value={draft.requested_by_affiliation}
+                    onChange={(e) =>
+                      set("requested_by_affiliation", e.target.value)
+                    }
+                    maxLength={150}
+                    className="h-11"
+                  />
+                </Label>
+                <Label
+                  label="Scientifically reviewed by"
+                  hint="Expert who vetted this prediction. Optional."
+                >
+                  <Input
+                    value={draft.scientifically_reviewed_by}
+                    onChange={(e) =>
+                      set("scientifically_reviewed_by", e.target.value)
+                    }
+                    maxLength={120}
+                    className="h-11"
+                  />
+                </Label>
+                <Label label="Reviewer affiliation">
+                  <Input
+                    value={draft.reviewed_by_affiliation}
+                    onChange={(e) =>
+                      set("reviewed_by_affiliation", e.target.value)
+                    }
+                    maxLength={150}
+                    className="h-11"
+                  />
+                </Label>
+              </div>
+            </div>
+          )}
         </div>
       </Section>
 

@@ -11,9 +11,11 @@ export function isPrediction(source: StructureSource): boolean {
 export function predictionBadgeLabel(source: StructureSource): string {
   switch (source) {
     case "alphafold2":
-      return "AlphaFold prediction";
+      return "AlphaFold 2 prediction";
+    case "alphafold-multimer":
+      return "AlphaFold Multimer prediction";
     case "alphafold3":
-      return "AlphaFold 3 multimer prediction";
+      return "AlphaFold 3 prediction";
     case "rosetta":
       return "Rosetta prediction";
     case "other-prediction":
@@ -23,29 +25,22 @@ export function predictionBadgeLabel(source: StructureSource): string {
   }
 }
 
-export function confidenceLabel(source: StructureSource): string {
-  if (source === "alphafold3") return "ipTM";
-  if (source.startsWith("alphafold")) return "Mean pLDDT";
-  return "Confidence";
+// Bucket the score into AlphaFold's canonical confidence bands. Used in
+// the badge tooltip so the number gets a plain-language qualifier.
+export function plddtBucket(plddt: number): "Very low" | "Low" | "Confident" | "Very high" {
+  if (plddt >= 90) return "Very high";
+  if (plddt >= 70) return "Confident";
+  if (plddt >= 50) return "Low";
+  return "Very low";
 }
 
 // Plain-language explanation shown as a native browser tooltip on hover.
-// Short enough to be readable in the small <abbr> popup.
-export function confidenceTooltip(source: StructureSource): string {
-  if (source === "alphafold3") {
-    return "ipTM (interface predicted TM-score) measures how confident AlphaFold 3 is in the geometry of the interface between chains in this complex. 0.8 and above means the interface is reliable; below 0.6 suggests the chains may not really interact this way.";
-  }
-  if (source.startsWith("alphafold")) {
-    return "Mean pLDDT (predicted Local Distance Difference Test) is AlphaFold's per-residue confidence, averaged across the structure. 90+ is very high confidence, 70 to 90 is confident, 50 to 70 is low, and below 50 is very low — often a sign of intrinsic disorder rather than a wrong prediction.";
-  }
-  return "Confidence score reported by the prediction method.";
-}
-
-// ipTM is on a 0-1 scale, pLDDT on a 0-100 scale. Format accordingly.
-export function formatConfidence(
-  source: StructureSource,
-  value: number,
-): string {
-  if (source === "alphafold3") return value.toFixed(2);
-  return value.toFixed(1);
+// Includes the entry's own score + bucket so the user gets the
+// interpretation without leaving the tooltip.
+export function plddtTooltip(plddt: number | null): string {
+  const base =
+    "pLDDT measures AlphaFold's confidence in the predicted structure. " +
+    "Above 90 is very high, 70-90 is confident, 50-70 is low, below 50 is very low.";
+  if (plddt === null) return base;
+  return `${base} This entry: ${plddt.toFixed(1)} (${plddtBucket(plddt)}).`;
 }

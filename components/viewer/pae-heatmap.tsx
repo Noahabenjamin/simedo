@@ -63,9 +63,13 @@ function paeColor(value: number, max: number): [number, number, number] {
 type Props = {
   url: string;
   size?: number;
+  // Optional override for the heatmap's color-scale max (Å). When set,
+  // the renderer trusts this over the value in the JSON — useful when
+  // the dataset author wants a consistent scale across entries.
+  max?: number | null;
 };
 
-export function PaeHeatmap({ url, size = 300 }: Props) {
+export function PaeHeatmap({ url, size = 320, max: maxOverride }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<
     { status: "loading" }
@@ -86,7 +90,8 @@ export function PaeHeatmap({ url, size = 300 }: Props) {
         if (!parsed) throw new Error("PAE JSON did not contain a matrix");
         if (cancelled) return;
 
-        const { matrix, max } = parsed;
+        const { matrix } = parsed;
+        const max = maxOverride ?? parsed.max;
         const n = matrix.length;
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -118,7 +123,7 @@ export function PaeHeatmap({ url, size = 300 }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, maxOverride]);
 
   return (
     <div className="flex flex-col gap-2">

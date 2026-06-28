@@ -30,6 +30,29 @@ export const EXPERIMENT_TYPES: { value: ExperimentType; label: string }[] = [
   { value: "folding", label: "Folding" },
 ];
 
+// Coarse buckets for the "Structure source" sidebar filter. The
+// fine-grained enum values from the DB are bucketed here so the user
+// picks between three readable options rather than seven enum strings.
+export const SOURCE_BUCKETS = [
+  { value: "experimental", label: "Experimental" },
+  { value: "alphafold", label: "AlphaFold" },
+  { value: "other-prediction", label: "Other predictions" },
+] as const;
+export type SourceBucket = (typeof SOURCE_BUCKETS)[number]["value"];
+
+// Maps a coarse bucket to the underlying structure_source enum values.
+// Used both in-memory (applyFilters) and against Supabase (.in()).
+export function expandSourceBucket(bucket: SourceBucket): string[] {
+  switch (bucket) {
+    case "experimental":
+      return ["experimental-xray", "experimental-nmr", "experimental-cryoem"];
+    case "alphafold":
+      return ["alphafold2", "alphafold-multimer", "alphafold3"];
+    case "other-prediction":
+      return ["rosetta", "other-prediction"];
+  }
+}
+
 export const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
   { value: "views", label: "Most viewed" },
@@ -85,6 +108,7 @@ export type BrowseFilters = {
   families: string[];
   organisms: string[];
   experiments: string[];
+  sources: SourceBucket[];
   tags: string[];
   trajectory?: "yes" | "no";
   sort: SortKey;
@@ -101,12 +125,16 @@ export function parseFilters(
   const trajectory: "yes" | "no" | undefined =
     trajectoryRaw === "yes" || trajectoryRaw === "no" ? trajectoryRaw : undefined;
 
+  const validSources = new Set(SOURCE_BUCKETS.map((s) => s.value));
   return {
     q: typeof searchParams.q === "string" ? searchParams.q : undefined,
     categories: parseMulti(searchParams.category),
     families: parseMulti(searchParams.family),
     organisms: parseMulti(searchParams.organism),
     experiments: parseMulti(searchParams.experiment),
+    sources: parseMulti(searchParams.source).filter(
+      (s): s is SourceBucket => validSources.has(s as SourceBucket),
+    ),
     tags: parseMulti(searchParams.tag),
     trajectory,
     sort,
@@ -144,6 +172,10 @@ export function applyFilters(
   }
   if (f.experiments.length > 0) {
     result = result.filter((s) => f.experiments.includes(s.experimentType));
+  }
+  if (f.sources.length > 0) {
+    const allowed = new Set(f.sources.flatMap(expandSourceBucket));
+    result = result.filter((s) => allowed.has(s.structureSource));
   }
   if (f.tags.length > 0) {
     const want = new Set(f.tags.map((t) => t.toLowerCase()));
@@ -185,6 +217,7 @@ export function hasActiveFilters(f: BrowseFilters): boolean {
     f.families.length > 0 ||
     f.organisms.length > 0 ||
     f.experiments.length > 0 ||
+    f.sources.length > 0 ||
     f.tags.length > 0 ||
     !!f.trajectory
   );
@@ -209,6 +242,11 @@ export function countForOption(
     case "experiments":
       return applyFilters(base, { ...stripped, experiments: [optionValue] })
         .length;
+    case "sources":
+      return applyFilters(base, {
+        ...stripped,
+        sources: [optionValue as SourceBucket],
+      }).length;
     default:
       return 0;
   }

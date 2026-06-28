@@ -74,11 +74,15 @@ type RawSeed = Omit<
   | "provenance"
   | "trajectory"
   | "structureSource"
-  | "predictionConfidence"
+  | "uniprotId"
+  | "alphafoldId"
+  | "predictionMeanPlddt"
   | "predictionPaeUrl"
+  | "predictionPaeMax"
   | "requestedBy"
   | "requestedByAffiliation"
   | "scientificallyReviewedBy"
+  | "reviewedByAffiliation"
 >;
 
 const RAW_SEED: RawSeed[] = [
@@ -485,11 +489,15 @@ export const mockSimulations: Simulation[] = RAW_SEED.map((s) => ({
   provenance: { ...SEED_PROVENANCE },
   trajectory: { ...SEED_TRAJECTORY },
   structureSource: "experimental-xray",
-  predictionConfidence: null,
+  uniprotId: null,
+  alphafoldId: null,
+  predictionMeanPlddt: null,
   predictionPaeUrl: null,
+  predictionPaeMax: null,
   requestedBy: null,
   requestedByAffiliation: null,
   scientificallyReviewedBy: null,
+  reviewedByAffiliation: null,
 }));
 
 export function getSimulation(id: string): Simulation | undefined {

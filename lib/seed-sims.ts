@@ -43,18 +43,23 @@ export type SeedSim = {
   comment_count: number;
   created_at: string;
   updated_at: string;
-  // Structure provenance (added 2026-06-23). RCSB entries default to
-  // 'experimental-xray'; AlphaFold entries set the AF fields below.
+  // Structure provenance (added 2026-06-23, extended 2026-06-28).
+  // RCSB entries default to 'experimental-xray'; AlphaFold entries set
+  // the AF fields below.
   structure_source:
     | "experimental-xray"
     | "experimental-nmr"
     | "experimental-cryoem"
     | "alphafold2"
+    | "alphafold-multimer"
     | "alphafold3"
     | "rosetta"
     | "other-prediction";
-  prediction_confidence: number | null;
+  uniprot_id: string | null;
+  alphafold_id: string | null;
+  prediction_mean_plddt: number | null;
   prediction_pae_url: string | null;
+  prediction_pae_max: number | null;
 };
 
 // Stays in sync with seed.sql + the rebrand migration.
@@ -74,8 +79,11 @@ type Input = Omit<
   | "comment_count"
   | "updated_at"
   | "structure_source"
-  | "prediction_confidence"
+  | "uniprot_id"
+  | "alphafold_id"
+  | "prediction_mean_plddt"
   | "prediction_pae_url"
+  | "prediction_pae_max"
 > & {
   // pdb_code is required for the RCSB helper, since the URL is derived
   // from it. AlphaFold entries go through af() instead.
@@ -95,8 +103,11 @@ function s(i: Input): SeedSim {
     comment_count: 0,
     updated_at: i.created_at,
     structure_source: "experimental-xray",
-    prediction_confidence: null,
+    uniprot_id: null,
+    alphafold_id: null,
+    prediction_mean_plddt: null,
     prediction_pae_url: null,
+    prediction_pae_max: null,
   };
 }
 
@@ -126,8 +137,13 @@ function af(i: AfInput): SeedSim {
     comment_count: 0,
     updated_at: i.created_at,
     structure_source: "alphafold2",
-    prediction_confidence: mean_plddt,
+    uniprot_id,
+    alphafold_id: `AF-${uniprot_id}-F1-v6`,
+    prediction_mean_plddt: mean_plddt,
     prediction_pae_url: `https://alphafold.ebi.ac.uk/files/AF-${uniprot_id}-F1-predicted_aligned_error_v6.json`,
+    // AlphaFold DB caps every PAE matrix at 31.75 Å — bake it in so the
+    // heatmap color scale matches the AF DB website.
+    prediction_pae_max: 31.75,
   };
 }
 

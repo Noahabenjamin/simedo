@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORIES,
   EXPERIMENT_TYPES,
+  SOURCE_BUCKETS,
   countForOption,
   getAllFamilies,
   getAllOrganisms,
@@ -81,6 +82,18 @@ export function FilterSidebar({ filters }: Props) {
               "experiments",
               e.value,
             )}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Structure source">
+        {SOURCE_BUCKETS.map((s) => (
+          <CheckboxOption
+            key={s.value}
+            label={s.label}
+            checked={filters.sources.includes(s.value)}
+            onChange={() => toggleMulti("source", s.value)}
+            count={countForOption(mockSimulations, filters, "sources", s.value)}
           />
         ))}
       </FilterSection>

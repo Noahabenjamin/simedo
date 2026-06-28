@@ -56,6 +56,23 @@ const LICENSE_MAP: Record<string, string> = {
   "all-rights-reserved": "all-rights-reserved",
 };
 
+const STRUCTURE_SOURCES = [
+  "experimental-xray",
+  "experimental-nmr",
+  "experimental-cryoem",
+  "alphafold2",
+  "alphafold-multimer",
+  "alphafold3",
+  "rosetta",
+  "other-prediction",
+] as const;
+
+function isPredictionSource(s: string): boolean {
+  return (
+    s.startsWith("alphafold") || s === "rosetta" || s === "other-prediction"
+  );
+}
+
 const ReserveSchema = z
   .object({
     title: z.string().trim().min(3).max(200),
@@ -100,6 +117,42 @@ const ReserveSchema = z
     // File metadata so the server can pre-pick a Storage path.
     trajectory_filename: z.string().trim().max(255).optional(),
     trajectory_size_bytes: z.coerce.number().int().min(0).optional(),
+    // Structure provenance — experimental sources keep the prediction
+    // fields collapsed; the client hides the form fields, and the server
+    // ignores them on insert. The .optional()s here are required because
+    // empty strings are coerced to undefined upstream.
+    structure_source: z.enum(STRUCTURE_SOURCES).default("experimental-xray"),
+    uniprot_id: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(20)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    alphafold_id: z
+      .string()
+      .trim()
+      .max(40)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    prediction_mean_plddt: z.coerce.number().min(0).max(100).optional(),
+    prediction_pae_url: z
+      .string()
+      .trim()
+      .url()
+      .max(500)
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    prediction_pae_max: z.coerce.number().min(0).max(100).optional(),
+    requested_by: z.string().trim().max(120).optional().default(""),
+    requested_by_affiliation: z.string().trim().max(150).optional().default(""),
+    scientifically_reviewed_by: z
+      .string()
+      .trim()
+      .max(120)
+      .optional()
+      .default(""),
+    reviewed_by_affiliation: z.string().trim().max(150).optional().default(""),
   })
   .refine(
     (v) =>
@@ -222,6 +275,37 @@ export async function reserveSimulation(
     source_doi: v.source_doi ?? null,
     has_trajectory: !!v.trajectory_filename,
     processing_status: v.trajectory_filename ? "pending" : "ready",
+    structure_source: v.structure_source,
+    // Prediction-only fields: only persist when the source is actually
+    // a prediction, so an experimental upload doesn't accidentally
+    // store stale draft values from a UI section the user never saw.
+    uniprot_id: isPredictionSource(v.structure_source)
+      ? (v.uniprot_id ?? null)
+      : null,
+    alphafold_id: isPredictionSource(v.structure_source)
+      ? (v.alphafold_id ?? null)
+      : null,
+    prediction_mean_plddt: isPredictionSource(v.structure_source)
+      ? (v.prediction_mean_plddt ?? null)
+      : null,
+    prediction_pae_url: isPredictionSource(v.structure_source)
+      ? (v.prediction_pae_url ?? null)
+      : null,
+    prediction_pae_max: isPredictionSource(v.structure_source)
+      ? (v.prediction_pae_max ?? null)
+      : null,
+    requested_by: isPredictionSource(v.structure_source)
+      ? (v.requested_by || null)
+      : null,
+    requested_by_affiliation: isPredictionSource(v.structure_source)
+      ? (v.requested_by_affiliation || null)
+      : null,
+    scientifically_reviewed_by: isPredictionSource(v.structure_source)
+      ? (v.scientifically_reviewed_by || null)
+      : null,
+    reviewed_by_affiliation: isPredictionSource(v.structure_source)
+      ? (v.reviewed_by_affiliation || null)
+      : null,
   };
 
   const { error: insertErr } = await supabase
