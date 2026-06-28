@@ -78,6 +78,9 @@ type DbSimulationRow = {
   uniprot_id?: string | null;
   alphafold_id?: string | null;
   prediction_mean_plddt?: number | null;
+  // Pre-rename name for prediction_mean_plddt. Kept here so the mapper
+  // can fall back to it on a prod DB that hasn't run 20260628000001 yet.
+  prediction_confidence?: number | null;
   prediction_pae_url?: string | null;
   prediction_pae_max?: number | null;
   requested_by?: string | null;
@@ -167,7 +170,8 @@ function mapRow(row: DbSimulationRow): Simulation {
     structureSource: row.structure_source ?? "experimental-xray",
     uniprotId: row.uniprot_id ?? null,
     alphafoldId: row.alphafold_id ?? null,
-    predictionMeanPlddt: row.prediction_mean_plddt ?? null,
+    predictionMeanPlddt:
+      row.prediction_mean_plddt ?? row.prediction_confidence ?? null,
     predictionPaeUrl: row.prediction_pae_url ?? null,
     predictionPaeMax: row.prediction_pae_max ?? null,
     requestedBy: row.requested_by ?? null,
@@ -177,21 +181,18 @@ function mapRow(row: DbSimulationRow): Simulation {
   };
 }
 
-// Minimal SELECT that only touches columns guaranteed by the initial
-// migration. Phase 5's provenance + compression columns and the
-// verification_level column on users are populated lazily by mapRow.
-// This keeps /browse + the detail page rendering even when prod hasn't
-// run the newer migrations yet — silent "column does not exist" errors
-// were the root cause of /browse showing 0 of 0.
+// Use `*` for the simulations columns so the query never fails when
+// prod is on an older schema. Postgrest fails the ENTIRE query if any
+// requested column doesn't exist, and we'd rather silently miss a
+// late-added column than have /browse show 0 of 0. The mapper below
+// is column-name-tolerant via `?? null` defaults.
+//
+// History: an earlier version explicitly listed every column. Each
+// time we added a migration we had to remember to extend this string,
+// and forgetting it (or shipping the code before the migration ran)
+// produced the "0 simulations" outage on 2026-06-28.
 const ROW_SELECT = `
-  id, user_id, title, description, pdb_code, pdb_url, trajectory_url,
-  thumbnail_url, category, protein_family, organism,
-  experiment_type, resolution, view_count, like_count, comment_count,
-  created_at,
-  structure_source, uniprot_id, alphafold_id,
-  prediction_mean_plddt, prediction_pae_url, prediction_pae_max,
-  requested_by, requested_by_affiliation,
-  scientifically_reviewed_by, reviewed_by_affiliation,
+  *,
   users:user_id (username, display_name, avatar_url),
   simulation_tags ( tags ( name ) )
 `;
