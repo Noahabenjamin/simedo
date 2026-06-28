@@ -55,6 +55,10 @@ type Props = { opacity: number };
 
 export function StudioHeroLayer({ opacity }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Hover/focus state for the desktop Donate link. Drives the fade-in
+  // of the microcopy below the nav so the explanation is only there
+  // when the user is actually considering the button.
+  const [donateActive, setDonateActive] = useState(false);
   const visible = opacity > 0.05;
 
   return (
@@ -79,22 +83,29 @@ export function StudioHeroLayer({ opacity }: Props) {
         </motion.div>
 
         <ul className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link, i) => (
-            <motion.li
-              key={link.label}
-              variants={fadeDown}
-              custom={i + 1}
-              initial="initial"
-              animate="animate"
-            >
-              <Link
-                href={link.href}
-                className="text-sm font-semibold uppercase tracking-widest text-black transition-opacity hover:opacity-60"
+          {NAV_LINKS.map((link, i) => {
+            const isDonate = link.href === "/donate";
+            return (
+              <motion.li
+                key={link.label}
+                variants={fadeDown}
+                custom={i + 1}
+                initial="initial"
+                animate="animate"
               >
-                {link.label}
-              </Link>
-            </motion.li>
-          ))}
+                <Link
+                  href={link.href}
+                  className="text-sm font-semibold uppercase tracking-widest text-black transition-opacity hover:opacity-60"
+                  onMouseEnter={isDonate ? () => setDonateActive(true) : undefined}
+                  onMouseLeave={isDonate ? () => setDonateActive(false) : undefined}
+                  onFocus={isDonate ? () => setDonateActive(true) : undefined}
+                  onBlur={isDonate ? () => setDonateActive(false) : undefined}
+                >
+                  {link.label}
+                </Link>
+              </motion.li>
+            );
+          })}
         </ul>
 
         <motion.button
@@ -114,16 +125,23 @@ export function StudioHeroLayer({ opacity }: Props) {
       </nav>
 
       {/* Microcopy under the nav explaining why "Donate" is there.
+          Same text + font as before; now only revealed while the
+          Donate nav link is hovered (or keyboard-focused), so the page
+          stays uncluttered until the user is actually looking at it.
           Hidden on small screens — the same line lives in the mobile menu. */}
-      <motion.p
+      <p
+        aria-hidden={!donateActive}
         className="hidden pl-[48vw] pr-[3.75rem] pt-2 text-right text-[10px] font-medium uppercase leading-tight tracking-[0.18em] text-black/55 sm:pl-[44vw] sm:pr-20 md:block md:pl-[40vw] md:pr-24 lg:pl-[32vw]"
-        variants={fadeDown}
-        custom={7}
-        initial="initial"
-        animate="animate"
+        style={{
+          opacity: donateActive ? 1 : 0,
+          transition: "opacity 220ms ease-out",
+          // Reserve the vertical space so the layout doesn't reflow
+          // when the caption appears/disappears.
+          pointerEvents: "none",
+        }}
       >
         Simedo is free — donations just cover hosting and API costs.
-      </motion.p>
+      </p>
 
       <div className="relative z-10 flex-1" />
 
