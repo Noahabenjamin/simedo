@@ -254,16 +254,25 @@ async function resolveStorageUrls(sim: Simulation): Promise<Simulation> {
 async function maybeSign(url: string): Promise<string> {
   if (url.startsWith("storage://")) {
     // storage://<bucket>/<path> — Supabase Storage, sign for 1h.
+    // The pdbs bucket's RLS only grants SELECT to `authenticated`, so an
+    // anon-keyed client can't sign URLs for logged-out visitors. Use the
+    // service-role client here: the caller has already been authorized to
+    // see the simulation row, and the signed URL itself is unguessable.
     const stripped = url.slice("storage://".length);
     const slash = stripped.indexOf("/");
     if (slash < 0) return url;
     const bucket = stripped.slice(0, slash);
     const path = stripped.slice(slash + 1);
     try {
-      const supabase = await createClient();
-      const { data } = await supabase.storage
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      const admin = createAdminClient();
+      const { data, error } = await admin.storage
         .from(bucket)
         .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+      if (error) {
+        console.warn("[storage] sign failed", error);
+        return url;
+      }
       return data?.signedUrl ?? url;
     } catch (e) {
       console.warn("[storage] sign failed", e);
