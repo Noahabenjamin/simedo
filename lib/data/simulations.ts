@@ -96,6 +96,28 @@ type DbSimulationRow = {
   simulation_tags: { tags: { name: string } | null }[] | null;
 };
 
+// Pre-rendered covers for AlphaFold-derived entries that have no PDB code
+// (so the RCSB CDN fallback in /api/thumbnail can't help). Keyed by UniProt
+// accession; the title fallback below covers the prod schema state where
+// the alphafold columns migration hasn't been applied yet and uniprot_id
+// arrives as null.
+const AF_THUMBNAILS: Record<string, string> = {
+  A8MZ59: "/thumbnails/af/leutx.png",
+  Q8NAM6: "/thumbnails/af/zscan4.png",
+};
+
+function resolveThumbnail(row: DbSimulationRow): string {
+  if (row.thumbnail_url && !row.thumbnail_url.includes("placehold.co")) {
+    return row.thumbnail_url;
+  }
+  const uniprot = row.uniprot_id?.toUpperCase();
+  if (uniprot && AF_THUMBNAILS[uniprot]) return AF_THUMBNAILS[uniprot];
+  const title = row.title ?? "";
+  if (/\bLEUTX\b/i.test(title)) return AF_THUMBNAILS.A8MZ59;
+  if (/\bZSCAN4\b/i.test(title)) return AF_THUMBNAILS.Q8NAM6;
+  return `/api/thumbnail/${(row.pdb_code ?? "").toLowerCase()}`;
+}
+
 function mapRow(row: DbSimulationRow): Simulation {
   return {
     id: row.id,
@@ -111,10 +133,7 @@ function mapRow(row: DbSimulationRow): Simulation {
       row.raw_trajectory_url ??
       row.trajectory_url,
     hasTrajectory: row.has_trajectory ?? false,
-    thumbnailUrl:
-      row.thumbnail_url && !row.thumbnail_url.includes("placehold.co")
-        ? row.thumbnail_url
-        : `/api/thumbnail/${(row.pdb_code ?? "").toLowerCase()}`,
+    thumbnailUrl: resolveThumbnail(row),
     category: row.category,
     proteinFamily: row.protein_family ?? undefined,
     organism: row.organism ?? undefined,
